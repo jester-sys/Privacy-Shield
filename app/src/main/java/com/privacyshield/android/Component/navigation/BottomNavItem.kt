@@ -9,6 +9,6 @@ import com.privacyshield.android.R
 
 sealed class BottomNavItem(val route: AppRoute, val title: String, val icon: Int) {
     data object Home : BottomNavItem(AppRoute.   Home, "Home", R.drawable.ic_app_icon)
-    data object Overview : BottomNavItem(AppRoute.Overview, "Overview", Icons.Default.Phone)
-    data object Permission : BottomNavItem(AppRoute.Permission, "Permission", Icons.Default.Settings)
+    data object Overview : BottomNavItem(AppRoute.Overview, "Overview", R.drawable.ic_overview_icon)
+    data object Permission : BottomNavItem(AppRoute.Permission, "Permission", R.drawable.ic_security_icon)
 }

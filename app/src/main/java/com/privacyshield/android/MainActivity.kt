@@ -13,7 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.privacyshield.android.Component.navigation.AppNavGraph
 import com.privacyshield.android.ui.theme.PrivacyShieldTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,18 +28,3 @@ class MainActivity : ComponentActivity() {
     }
   }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
- }
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    PrivacyShieldTheme {
-        Greeting("Android")
-    }
-}
