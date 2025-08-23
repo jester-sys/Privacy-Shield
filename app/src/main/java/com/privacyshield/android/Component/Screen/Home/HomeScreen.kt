@@ -70,7 +70,7 @@ fun HomeScreen(
     var filterSheetOpen by remember { mutableStateOf(false) }
     var sortSheetOpen by remember { mutableStateOf(false) }
 
-    // ✅ Enum use kar ke filters aur sort
+
     val selectedFilters = remember { mutableStateListOf<FilterType>() }
     val pendingFilters = remember { mutableStateListOf<FilterType>() }
 
@@ -78,6 +78,7 @@ fun HomeScreen(
 
     // 🔎 Filtering + sorting
     var filteredApps = apps.filter { it.appName.contains(searchQuery, ignoreCase = true) }
+
     filteredApps = applyFiltersEnum(
         apps,
         selectedFilters.toList(),

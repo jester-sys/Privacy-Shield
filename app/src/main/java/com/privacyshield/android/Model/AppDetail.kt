@@ -20,6 +20,7 @@ data class AppDetail(
     val lastUpdateTime: Long,
     val sourceDir: String,
     val isSystemApp: Boolean,
+    val isFromPlayStore :Boolean,
     val permissions: List<AppPermission>,
     val isOemApp: Boolean,
     val isSideloaded: Boolean,
@@ -30,5 +31,6 @@ data class AppDetail(
     val isManagedProfile: Boolean,
     val hasCustomBatterySetting: Boolean,
     val isAccessibilityService: Boolean,
+
 ): Parcelable
 

@@ -64,11 +64,20 @@ class AppRepository @Inject constructor(
                 val isSideloaded = (appsInfo.flags and ApplicationInfo.FLAG_INSTALLED) != 0 &&
                         (appsInfo.sourceDir?.startsWith("/data/app/") == true)
 
+
                 val hasInternetPermission = packageInfo.requestedPermissions?.contains(
                     android.Manifest.permission.INTERNET
                 ) ?: false
 
                 val sharedUserId = packageInfo.sharedUserId
+                val installerPackageName = pm.getInstallerPackageName(appsInfo.packageName)
+                val isFromPlayStore = installerPackageName == "com.android.vending"
+                val installSource = when {
+                    isSystemApp -> "System App"
+                    isFromPlayStore -> "Play Store"
+                    else -> "APK / Unknown"
+                }
+
 
                 val isCloned = (appsInfo.packageName.contains(":")) // clone apps usually have colon suffix
                 val isActiveProfile = android.os.Process.myUid() / 100000 == appsInfo.uid / 100000
@@ -103,7 +112,7 @@ class AppRepository @Inject constructor(
                     isSystemApp = isSystemApp,
                     permissions = permissions,
 
-                    // 🔥 naye fields assign
+
                     isOemApp = isOemApp,
                     isSideloaded = isSideloaded,
                     hasInternetPermission = hasInternetPermission,
@@ -112,7 +121,10 @@ class AppRepository @Inject constructor(
                     isActiveProfile = isActiveProfile,
                     isManagedProfile = isManagedProfile,
                     hasCustomBatterySetting = hasCustomBatterySetting,
-                    isAccessibilityService = isAccessibilityService
+                    isAccessibilityService = isAccessibilityService,
+                    isFromPlayStore = isFromPlayStore,
+
+
                 )
             } catch (e: Exception) {
                 null
