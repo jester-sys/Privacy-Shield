@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("com.google.dagger.hilt.android")
     id("kotlin-kapt")
+    id("kotlin-parcelize")
 }
 
 android {
@@ -67,5 +68,9 @@ dependencies {
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
     implementation("io.coil-kt:coil-compose:2.7.0")
+
+    implementation(platform("androidx.compose:compose-bom:2025.01.00"))
+    implementation("androidx.compose.material:material-icons-extended")
+
 
 }

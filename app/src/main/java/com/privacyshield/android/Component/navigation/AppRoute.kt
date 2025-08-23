@@ -8,4 +8,5 @@ sealed class AppRoute(val route: String) {
     data object Home : AppRoute("home")
     data object Overview : AppRoute("overview")
     data object Permission : AppRoute("permission")
+    data object Details :  AppRoute("details")
 }

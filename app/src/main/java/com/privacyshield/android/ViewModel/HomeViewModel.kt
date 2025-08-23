@@ -1,5 +1,8 @@
 package com.privacyshield.android.ViewModel
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.privacyshield.android.Model.AppDetail
@@ -14,14 +17,23 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: AppRepository
-) : ViewModel() {
+): ViewModel() {
 
-    private val _apps = MutableStateFlow<List<AppDetail>>(emptyList())
-    val apps: StateFlow<List<AppDetail>> = _apps
+    var appList by mutableStateOf<List<AppDetail>>(emptyList())
+        private set
+
+    var isLoading by mutableStateOf(true)
+        private set
 
     init {
+        loadApps()
+    }
+
+    private fun loadApps() {
         viewModelScope.launch {
-            _apps.value = repository.getInstalledApps()
+            isLoading = true
+            appList = repository.getInstalledApps()
+            isLoading = false
         }
     }
 }
