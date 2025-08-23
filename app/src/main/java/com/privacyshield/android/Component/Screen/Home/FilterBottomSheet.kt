@@ -43,7 +43,7 @@ fun FilterBottomSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onCancel,
-        containerColor = Color(0xFF1E1E1E)
+        containerColor = Color(0xFF050505)
     ) {
         Column(
             Modifier.fillMaxWidth().fillMaxHeight(0.7f).padding(16.dp)
@@ -94,7 +94,7 @@ fun SortBottomSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = {},
-        containerColor = Color(0xFF1E1E1E)
+        containerColor = Color(0xFF050505)
     ) {
         Column(Modifier.padding(16.dp)) {
             Text("Sort Apps", fontSize = 18.sp, fontWeight = FontWeight.Bold)

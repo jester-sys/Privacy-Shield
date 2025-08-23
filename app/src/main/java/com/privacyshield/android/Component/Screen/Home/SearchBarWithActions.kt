@@ -129,14 +129,23 @@ fun AppCount(filteredSize: Int, totalSize: Int) {
 }
 
 @Composable
-fun AppList(loading: Boolean, apps: List<AppDetail>, onAppClick: (AppDetail) -> Unit) {
+fun AppList(
+    loading: Boolean,
+    apps: List<AppDetail>,
+    onAppClick: (AppDetail) -> Unit,
+    onAction: (AppDetail, String) -> Unit // 👈 needed for popup actions
+) {
     Box(Modifier.fillMaxSize()) {
         if (loading) {
-            CircularProgressIndicator( Modifier.align(Alignment.Center))
+            CircularProgressIndicator(Modifier.align(Alignment.Center))
         } else {
             LazyColumn(Modifier.fillMaxSize()) {
                 items(apps) { app ->
-                    AppDetailCard( app = app, onViewDetails = onAppClick )
+                    AppDetailCard(
+                        app = app,
+                        onViewDetails = onAppClick,
+                        onAction = onAction
+                    )
                 }
             }
         }

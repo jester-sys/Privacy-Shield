@@ -108,7 +108,19 @@ fun HomeScreen(
 
 //        AppCount(filteredApps.size, apps.size)
 
-        AppList(loading = loading, apps = filteredApps, onAppClick = onAppClick)
+        AppList(
+            loading = loading,
+            apps = filteredApps,
+            onAppClick = onAppClick,
+            onAction = { app, action ->
+                when (action) {
+                    "Open" -> { }
+                    "Uninstall" -> { /* uninstall logic */ }
+                    "Share" -> { /* share logic */ }
+                    "Details" -> onAppClick(app)
+                }
+            }
+        )
     }
 
     if (filterSheetOpen) {

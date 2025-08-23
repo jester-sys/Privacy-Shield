@@ -27,6 +27,7 @@ class HomeViewModel @Inject constructor(
 
     init {
         loadApps()
+
     }
 
     private fun loadApps() {

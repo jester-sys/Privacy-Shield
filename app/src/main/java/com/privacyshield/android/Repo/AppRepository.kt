@@ -61,8 +61,10 @@ class AppRepository @Inject constructor(
                 // ⚡ custom checks
                 val isSystemApp = (appsInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
                 val isOemApp = (appsInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
-                val isSideloaded = (appsInfo.flags and ApplicationInfo.FLAG_INSTALLED) != 0 &&
-                        (appsInfo.sourceDir?.startsWith("/data/app/") == true)
+//                val isSideloaded = (appsInfo.flags and ApplicationInfo.FLAG_INSTALLED) != 0 &&
+//                        (appsInfo.sourceDir?.startsWith("/data/app/") == true)
+
+
 
 
                 val hasInternetPermission = packageInfo.requestedPermissions?.contains(
@@ -72,13 +74,13 @@ class AppRepository @Inject constructor(
                 val sharedUserId = packageInfo.sharedUserId
                 val installerPackageName = pm.getInstallerPackageName(appsInfo.packageName)
                 val isFromPlayStore = installerPackageName == "com.android.vending"
-                val installSource = when {
-                    isSystemApp -> "System App"
-                    isFromPlayStore -> "Play Store"
-                    else -> "APK / Unknown"
-                }
-
-
+//                val installSource = when {
+//                    isSystemApp -> "System App"
+//                    isFromPlayStore -> "Play Store"
+//                    else -> "APK / Unknown"
+//                }
+                val isPlayStore = !isSystemApp && !isOemApp
+                val isSideloaded = !isSystemApp && !isOemApp && !isFromPlayStore
                 val isCloned = (appsInfo.packageName.contains(":")) // clone apps usually have colon suffix
                 val isActiveProfile = android.os.Process.myUid() / 100000 == appsInfo.uid / 100000
                 val isManagedProfile = (appsInfo.flags and ApplicationInfo.FLAG_ALLOW_CLEAR_USER_DATA) != 0
@@ -122,7 +124,7 @@ class AppRepository @Inject constructor(
                     isManagedProfile = isManagedProfile,
                     hasCustomBatterySetting = hasCustomBatterySetting,
                     isAccessibilityService = isAccessibilityService,
-                    isFromPlayStore = isFromPlayStore,
+                    isFromPlayStore = isPlayStore,
 
 
                 )
