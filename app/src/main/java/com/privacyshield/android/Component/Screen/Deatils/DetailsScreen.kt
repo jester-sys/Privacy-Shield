@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.privacyshield.android.Component.Helper.AppIcon
 import com.privacyshield.android.Component.Helper.toPainter
 import com.privacyshield.android.Model.AppDetail
 
@@ -38,10 +39,7 @@ fun DetailsScreen(app:AppDetail){
                 .padding(16.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(painter = app.icon.toPainter(),
-                    contentDescription = app.appName,
-                    modifier = Modifier.size(70.dp)
-                )
+                AppIcon(app.packageName)
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(text = app.appName, fontWeight = FontWeight.Bold, fontSize = 20.sp)

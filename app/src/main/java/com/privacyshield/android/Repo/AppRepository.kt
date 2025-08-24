@@ -16,7 +16,10 @@ import javax.inject.Inject
 class AppRepository @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    suspend fun getInstalledApps(): List<AppDetail> = withContext(Dispatchers.IO) {
+
+    suspend fun getInstalledApps(
+        filter: AppFilter = AppFilter.ALL
+    ): List<AppDetail> = withContext(Dispatchers.IO) {
         val pm = context.packageManager
         val installedApps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
 
@@ -32,7 +35,40 @@ class AppRepository @Inject constructor(
                     pm.getPackageInfo(appsInfo.packageName, PackageManager.GET_PERMISSIONS)
                 }
 
-                // 👇 Yahan har permission ke liye AppPermission object banayenge
+                // ---- FLAGS ----
+                val isSystemApp = (appsInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+                val isOemApp = (appsInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+
+
+
+
+
+
+                val installerPackageName = try {
+                    pm.getInstallerPackageName(appsInfo.packageName)
+                } catch (e: Exception) {
+                    null
+                }
+
+                val isFromPlayStore = installerPackageName == "com.android.vending"
+
+                val  isSideloaded  = !isSystemApp && !isFromPlayStore
+
+
+                when (filter) {
+                    AppFilter.SIDELOADED -> {
+
+                        if (!isSideloaded || isFromPlayStore || isSystemApp) return@mapNotNull null
+                    }
+                    AppFilter.PLAY_STORE -> {
+                        if (!isFromPlayStore) return@mapNotNull null
+                    }
+                    AppFilter.ALL -> {
+                        // sabhi ko allow
+                    }
+                }
+
+                // ---- Permissions ----
                 val permissions = packageInfo.requestedPermissions?.mapNotNull { permName ->
                     try {
                         val permInfo = pm.getPermissionInfo(permName, 0)
@@ -46,7 +82,9 @@ class AppRepository @Inject constructor(
                         val isDangerous =
                             permInfo.protectionLevel and PermissionInfo.PROTECTION_DANGEROUS != 0
 
-                        val isDeclared = packageInfo.requestedPermissions?.contains(permInfo.name) == true
+                        val isDeclared =
+                            packageInfo.requestedPermissions?.contains(permInfo.name) == true
+
                         AppPermission(
                             name = permInfo.name,
                             isGranted = granted,
@@ -58,33 +96,16 @@ class AppRepository @Inject constructor(
                     }
                 } ?: emptyList()
 
-                val isSystemApp = (appsInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
-                val isOemApp = (appsInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
-                val installerPackage = pm.getInstallerPackageName(appsInfo.packageName)
-                val isFromPlayStore = installerPackage == "com.android.vending"
-
-
-                val isSideloaded = !isFromPlayStore && !isSystemApp && !isOemApp
-
-
-                val isPlayStore = isFromPlayStore
-
-                val isUserApp = !isSystemApp && !isOemApp
-
-
-
-
-
-
+                // ---- Extra Info ----
                 val hasInternetPermission = packageInfo.requestedPermissions?.contains(
                     android.Manifest.permission.INTERNET
                 ) ?: false
 
                 val sharedUserId = packageInfo.sharedUserId
-                val installerPackageName = pm.getInstallerPackageName(appsInfo.packageName)
-                val isCloned = (appsInfo.packageName.contains(":")) // clone apps usually have colon suffix
+                val isCloned = (appsInfo.packageName.contains(":")) // cloned app detection
                 val isActiveProfile = android.os.Process.myUid() / 100000 == appsInfo.uid / 100000
-                val isManagedProfile = (appsInfo.flags and ApplicationInfo.FLAG_ALLOW_CLEAR_USER_DATA) != 0
+                val isManagedProfile =
+                    (appsInfo.flags and ApplicationInfo.FLAG_ALLOW_CLEAR_USER_DATA) != 0
 
                 val hasCustomBatterySetting =
                     try {
@@ -99,10 +120,10 @@ class AppRepository @Inject constructor(
                 val isAccessibilityService =
                     packageInfo.services?.any { it.permission == android.Manifest.permission.BIND_ACCESSIBILITY_SERVICE } == true
 
+                // ---- Final AppDetail ----
                 AppDetail(
                     appName = pm.getApplicationLabel(appsInfo).toString(),
                     packageName = appsInfo.packageName,
-                    icon = pm.getApplicationIcon(appsInfo),
                     versionName = packageInfo.versionName ?: "",
                     versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) packageInfo.longVersionCode
                     else @Suppress("DEPRECATION") packageInfo.versionCode.toLong(),
@@ -114,8 +135,6 @@ class AppRepository @Inject constructor(
                     sourceDir = appsInfo.sourceDir,
                     isSystemApp = isSystemApp,
                     permissions = permissions,
-
-
                     isOemApp = isOemApp,
                     isSideloaded = isSideloaded,
                     hasInternetPermission = hasInternetPermission,
@@ -125,9 +144,7 @@ class AppRepository @Inject constructor(
                     isManagedProfile = isManagedProfile,
                     hasCustomBatterySetting = hasCustomBatterySetting,
                     isAccessibilityService = isAccessibilityService,
-                    isFromPlayStore = isSystemApp,
-
-
+                    isFromPlayStore = isFromPlayStore
                 )
             } catch (e: Exception) {
                 null
@@ -135,3 +152,26 @@ class AppRepository @Inject constructor(
         }
     }
 }
+
+// ---- Filter Options ----
+enum class AppFilter {
+    ALL,
+    SIDELOADED,
+    PLAY_STORE
+}
+
+
+
+//try {
+//    // Play Store app me direct kholne ka try
+//    Intent intent = new Intent(Intent.ACTION_VIEW,
+//        Uri.parse("market://details?id=" + YOUR_APP_PACKAGE_NAME));
+//    intent.setPackage("com.android.vending"); // force Play Store
+//    startActivity(intent);
+//} catch (android.content.ActivityNotFoundException anfe) {
+//    // Agar Play Store app install nahi hai, to browser me khol de
+//    startActivity(new Intent(Intent.ACTION_VIEW,
+//        Uri.parse("https://play.google.com/store/apps/details?id=" + YOUR_APP_PACKAGE_NAME)));
+//}
+
+

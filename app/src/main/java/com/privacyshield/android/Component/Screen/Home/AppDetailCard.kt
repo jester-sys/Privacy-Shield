@@ -44,6 +44,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.privacyshield.android.Component.Helper.AppIcon
 import com.privacyshield.android.Component.Helper.toPainter
 import com.privacyshield.android.Component.Screen.Home.Action.manageOpenByDefault
 import com.privacyshield.android.Component.Screen.Home.Action.managePermissions
@@ -100,11 +101,7 @@ fun AppDetailCard(
                     ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Image(
-                    painter = app.icon.toPainter(),
-                    contentDescription = app.appName,
-                    modifier = Modifier.size(50.dp)
-                )
+                AppIcon(app.packageName)
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
