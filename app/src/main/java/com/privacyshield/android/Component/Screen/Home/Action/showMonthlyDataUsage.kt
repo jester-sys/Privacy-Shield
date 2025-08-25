@@ -7,6 +7,7 @@ import android.net.ConnectivityManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.Image
@@ -177,7 +178,7 @@ fun AppDataUsageCard(
                             }
                         }
 
-                        // Usage Details Card
+
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
@@ -218,19 +219,33 @@ fun AppDataUsageCard(
                                     style = MaterialTheme.typography.titleMedium,
                                     color = TextPrimaryDark
                                 )
+
+
+                                Button(
+                                    onClick = {    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = Uri.parse("package:${app.packageName}")
+                                    }
+                                        context.startActivity(intent)},
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = BluePrimary)
+                                ) {
+                                    Text("Manage", color = Color.White)
+                                }
+                                Button(
+                                    onClick = onDismiss,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = BluePrimary)
+                                ) {
+                                    Text("Close", color = Color.White)
+                                }
                             }
                         }
                     }
                 }
 
-                // Close Button
-                Button(
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = BluePrimary)
-                ) {
-                    Text("Close", color = Color.White)
-                }
+
+
+
             }
         }
     }
@@ -244,9 +259,7 @@ fun formatData(bytes: Long): String {
     return if (mb < 1024) "%.2f MB".format(mb) else "%.2f GB".format(mb / 1024)
 }
 
-// ----------------------------
-// Helper function to fetch all usage
-// ----------------------------
+
 suspend fun fetchAllNetworkUsage(
     context: Context,
     app: AppDetail,

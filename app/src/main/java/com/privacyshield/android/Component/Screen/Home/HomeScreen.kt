@@ -1,5 +1,6 @@
 package com.privacyshield.android.Component.Screen.Home
 
+import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -60,7 +61,8 @@ import com.privacyshield.android.ViewModel.HomeViewModel
 @Composable
 fun HomeScreen(
     homeViewModel: HomeViewModel = hiltViewModel(),
-    onAppClick: (AppDetail) -> Unit
+    onAppClick: (AppDetail) -> Unit,
+    activity: Activity
 ) {
     val apps = homeViewModel.appList
     val loading = homeViewModel.isLoading
@@ -88,7 +90,7 @@ fun HomeScreen(
     filteredApps = applySortingEnum(filteredApps, selectedSort)
 
 
-    Column(Modifier.fillMaxSize().background(Color.Black)) {
+    Column(Modifier.fillMaxSize()) {
 
         SearchBarWithActions(
             searchQuery = searchQuery,
@@ -109,6 +111,7 @@ fun HomeScreen(
 //        AppCount(filteredApps.size, apps.size)
 
         AppList(
+            activity = activity,
             loading = loading,
             apps = filteredApps,
             onAppClick = onAppClick,

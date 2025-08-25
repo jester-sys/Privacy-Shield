@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Privacy Shield</string>
+    <string name="BODY_SENSORS">"\n            Sensors Permission:\n            - Access device sensors for health or fitness.\n            - Sub-permissions: Heart rate, step count, activity sensors.\n            - Use case: Health apps, step tracking, workout logging.\n            - Risks: Sensitive health data can be collected and misused.\n        "</string>
+    <string name="VIBRATE">"\n            Vibration Permission:\n            - Allows the app to trigger vibrations.\n            - Use case: Notifications, haptic feedback.\n            - Risks: Minimal risk, but excessive vibration can annoy users.\n        "</string>
+    <string name="Other_Permission">"\n            Other Permission:\n            - Provides specific access required by the app.\n            - Use case and risks depend on the exact permission.\n        "</string>
+    <string name="READ_CALENDAR">"\n            Calendar Permission:\n            - Access your calendar events.\n            - Sub-permissions: Read existing events, add/edit/delete events.\n            - Use case: Scheduling, reminders, event syncing.\n            - Risks: Apps can see your appointments, track your schedule.\n        "</string>
 </resources>

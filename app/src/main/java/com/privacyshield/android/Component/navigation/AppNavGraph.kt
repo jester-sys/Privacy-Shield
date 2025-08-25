@@ -1,5 +1,6 @@
 package com.privacyshield.android.Component.navigation
 
+import android.app.Activity
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavDestination
 import androidx.navigation.NavType
@@ -14,7 +15,7 @@ import com.privacyshield.android.Component.Screen.SplashScreen
 import com.privacyshield.android.Model.AppDetail
 
 @Composable
-fun AppNavGraph(startDestination: String = AppRoute.Splash.route) {
+fun AppNavGraph(startDestination: String = AppRoute.Splash.route,  activity: Activity) {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = startDestination) {
@@ -29,7 +30,7 @@ fun AppNavGraph(startDestination: String = AppRoute.Splash.route) {
 
         // Main with bottom nav
         composable(AppRoute.Main.route) {
-            MainScreen(navController = rememberNavController())
+            MainScreen(navController = rememberNavController(), activity = activity)
         }
         composable(
             route = "${AppRoute.Details.route}/{app}",

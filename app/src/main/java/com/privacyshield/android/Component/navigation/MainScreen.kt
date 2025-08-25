@@ -1,5 +1,6 @@
 package com.privacyshield.android.Component.navigation
 
+import android.app.Activity
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -26,7 +27,7 @@ import com.privacyshield.android.ui.theme.BluePrimary
 import com.privacyshield.android.ui.theme.SurfaceDark
 
 @Composable
-fun MainScreen(navController: NavHostController) {
+fun MainScreen(navController: NavHostController,activity: Activity) {
     val bottomItems = listOf(
         BottomNavItem.Home,
         BottomNavItem.Overview,
@@ -75,6 +76,7 @@ fun MainScreen(navController: NavHostController) {
             // ✅ HomeScreen with navigation to details
             composable(BottomNavItem.Home.route.route) {
                 HomeScreen(
+                    activity = activity,
                     onAppClick = { app ->
                         navController.currentBackStackEntry?.savedStateHandle?.set("selectedApp", app)
                         navController.navigate("details")

@@ -1,5 +1,6 @@
 package com.privacyshield.android.Component.Screen.Home
 
+import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -133,7 +134,8 @@ fun AppList(
     loading: Boolean,
     apps: List<AppDetail>,
     onAppClick: (AppDetail) -> Unit,
-    onAction: (AppDetail, String) -> Unit // 👈 needed for popup actions
+    onAction: (AppDetail, String) -> Unit, // 👈 needed for popup actions
+    activity: Activity
 ) {
     Box(Modifier.fillMaxSize()) {
         if (loading) {
@@ -142,6 +144,7 @@ fun AppList(
             LazyColumn(Modifier.fillMaxSize()) {
                 items(apps) { app ->
                     AppDetailCard(
+                        activity = activity,
                         app = app,
                         onViewDetails = onAppClick,
                         onAction = onAction
