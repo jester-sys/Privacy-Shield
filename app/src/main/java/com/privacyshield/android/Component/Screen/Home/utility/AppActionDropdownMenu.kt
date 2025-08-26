@@ -68,7 +68,7 @@ fun AppActionPopupMenu(
 ) {
     if (showSheet) {
         val context = LocalContext.current
-        val dominantColor = remember { mutableStateOf(Color(0xFF000000)) } // default dark gray
+        val dominantColor = remember { mutableStateOf(Color(0xFF121212)) } // default dark gray
         LaunchedEffect(app.packageName) {
             try {
                 val drawable = context.packageManager.getApplicationIcon(app.packageName)

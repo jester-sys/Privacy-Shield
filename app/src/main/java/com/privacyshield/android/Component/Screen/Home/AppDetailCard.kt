@@ -82,20 +82,26 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.NetworkCell
 import androidx.compose.material.icons.filled.Photo
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.window.Dialog
 import com.privacyshield.android.Component.Screen.Home.utility.getPermissionDetails
+import java.sql.Date
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 
 @SuppressLint("ContextCastToActivity")
@@ -130,7 +136,7 @@ fun AppDetailCard(
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 4.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0x80333333))
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF121212))
     ){
 
 
@@ -139,92 +145,123 @@ fun AppDetailCard(
             .fillMaxWidth()
             .padding(8.dp)
             .background(
-                Color.Black.copy(alpha = 0.1f),
+                Color(0xFF1E1E1E),
                 RoundedCornerShape(12.dp)
             )
             .animateContentSize()
             .padding(12.dp)
 
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.Top,
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+        ) {
 
-            Row(
+            AppIcon(
+                packageName = app.packageName,
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Column(
                 modifier = Modifier
                     .weight(1f)
                     .clickable { onViewDetails(app) }
                     .combinedClickable(
                         onClick = { onViewDetails(app) },
                         onLongClick = { showMenu = true }
-                    ),
-                verticalAlignment = Alignment.CenterVertically
+                    )
             ) {
-                AppIcon(app.packageName)
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text(
-                        text = app.appName,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                    Text(
-                        text = "Version: ${app.versionName}",
-                        fontSize = 12.sp
-                    )
+                Text(
+                    text = app.appName,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
 
-                    // 🔹 Source info
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        when {
-                            app.isSystemApp -> {
-                                Icon(
-                                    imageVector = Icons.Default.Settings,
-                                    contentDescription = "System App",
-                                    tint = Color(0xFFFFA000),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("System App", color = Color(0xFFFFA000), fontSize = 12.sp)
-                            }
 
-                            app.isFromPlayStore -> {
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_playstore_icon),
-                                    contentDescription = "Play Store",
-                                    tint = Color(0xFF0F9D58),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Play Store", color = Color(0xFF0F9D58), fontSize = 12.sp)
-                            }
+                Text(
+                    text = app.packageName,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
 
-                            app.isSideloaded -> {
-                                Icon(
-                                    imageVector = Icons.Default.Download,
-                                    contentDescription = "Sideloaded",
-                                    tint = Color.Red,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Sideloaded", color = Color.Red, fontSize = 12.sp)
-                            }
+                // Version
+                Text(
+                    text = "Version: ${app.versionName}",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
-                            else -> {
-                                Icon(
-                                    imageVector = Icons.Default.Download,
-                                    contentDescription = "Unknown Source",
-                                    tint = Color.Gray,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Unknown Source", color = Color.Gray, fontSize = 12.sp)
-                            }
+                // Install Time
+                Text(
+                    text = "Install Time: ${formatTime(app.firstInstallTime)}",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // Update Time
+                Text(
+                    text = "Update Time: ${formatTime(app.lastUpdateTime)}",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // 🔹 Source info row
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    when {
+                        app.isSystemApp -> {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "System App",
+                                tint = Color(0xFFFFA000),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("System App", color = Color(0xFFFFA000), fontSize = 12.sp)
+                        }
+
+                        app.isFromPlayStore -> {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_playstore_icon),
+                                contentDescription = "Play Store",
+                                tint = Color(0xFF0F9D58),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Play Store", color = Color(0xFF0F9D58), fontSize = 12.sp)
+                        }
+
+                        app.isSideloaded -> {
+                            Icon(
+                                imageVector = Icons.Default.Download,
+                                contentDescription = "Sideloaded",
+                                tint = Color.Red,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Sideloaded", color = Color.Red, fontSize = 12.sp)
+                        }
+
+                        else -> {
+                            Icon(
+                                imageVector = Icons.Default.Download,
+                                contentDescription = "Unknown Source",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Unknown Source", color = Color.Gray, fontSize = 12.sp)
                         }
                     }
                 }
-
             }
+         }
 
-
-        }
 
     }
 
@@ -322,7 +359,7 @@ fun ImportantPermissionsRow(app: AppDetail) {
 
                 Card(
                     shape = CircleShape,
-                    colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.2f)),
+                    colors = CardDefaults.cardColors(containerColor = Color.Black),
                     modifier = Modifier
                         .size(40.dp)
                         .clickable {
@@ -352,17 +389,17 @@ fun ImportantPermissionsRow(app: AppDetail) {
         Dialog(onDismissRequest = { showDialog = false }) {
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = Color.White,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
+                    .fillMaxWidth().
+                    padding(16.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Box(modifier = Modifier.background(Color(0xFF121212)).padding(16.dp)) {
+                Column(modifier = Modifier.background(Color(0xFF121212))) {
                     Text(
                         text = "Permission Details",
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
-                        color = Color.Black
+                        color = Color.White
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -382,6 +419,7 @@ fun ImportantPermissionsRow(app: AppDetail) {
                         }
                     }
                 }
+                    }
             }
         }
     }
@@ -461,7 +499,10 @@ fun getPermissionColor(perm: AppPermission): Color {
         PermissionLevel.SAFE -> Color(0xFF388E3C)
     }
 }
-
+fun formatTime(millis: Long): String {
+    val sdf = SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault())
+    return sdf.format(Date(millis))
+}
 
 //Text(text = app.appName, fontWeight = FontWeight.Bold)
 //Text(text = "Package: ${app.packageName}", fontSize = 12.sp)
