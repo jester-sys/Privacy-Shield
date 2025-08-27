@@ -1,7 +1,9 @@
 package com.privacyshield.android.Component.Screen.Deatils
 
+import android.os.Bundle
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,16 +40,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import com.privacyshield.android.Component.Helper.AppIcon
 import com.privacyshield.android.Component.Helper.toPainter
 import com.privacyshield.android.Component.Screen.Deatils.utility.formatSourceDir
 import com.privacyshield.android.Component.Screen.Deatils.utility.getDominantGradient
 import com.privacyshield.android.Component.Screen.Home.formatTime
 import com.privacyshield.android.Model.AppDetail
+import java.net.URLEncoder
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun DetailsScreen(app: AppDetail) {
+fun DetailsScreen(app: AppDetail,   navController: NavHostController) {
     val context = LocalContext.current
     val dominantGradient by remember {
         mutableStateOf(getDominantGradient(context, app.packageName))
@@ -160,6 +164,17 @@ fun DetailsScreen(app: AppDetail) {
                                                 Color(0xFF2A2A2A),
                                                 shape = RoundedCornerShape(12.dp)
                                             )
+                                            .clickable {
+                                                // Save selected permission
+                                                navController.currentBackStackEntry?.savedStateHandle?.set("selectedPermission", perm.name)
+
+                                                // ✅ Yahan pe sari apps pass karo
+                                                navController.currentBackStackEntry?.savedStateHandle?.set("allApps", listOf(app))
+
+                                                // Navigate
+                                                val encodedPermission = URLEncoder.encode(perm.name, "UTF-8")
+                                                navController.navigate("permission_details/$encodedPermission")
+                                            }
                                             .padding(horizontal = 12.dp, vertical = 6.dp)
                                     ) {
                                         Text(text = perm.toString(), fontSize = 12.sp, color = Color.Green)
@@ -184,7 +199,20 @@ fun DetailsScreen(app: AppDetail) {
                                                 Color(0xFF2A2A2A),
                                                 shape = RoundedCornerShape(12.dp)
                                             )
+                                            .clickable {
+                                                // Save selected permission
+                                                navController.currentBackStackEntry?.savedStateHandle?.set("selectedPermission", perm.name)
+
+
+                                                navController.currentBackStackEntry?.savedStateHandle?.set("allApps", listOf(app))
+
+                                                // Navigate
+                                                val encodedPermission = URLEncoder.encode(perm.name, "UTF-8")
+                                                navController.navigate("permission_details/$encodedPermission")
+                                            }
+
                                             .padding(horizontal = 12.dp, vertical = 6.dp)
+
                                     ) {
                                         Text(text = perm.toString(), fontSize = 12.sp, color = Color.Red)
                                     }
@@ -207,7 +235,20 @@ fun DetailsScreen(app: AppDetail) {
                                             .background(
                                                 Color(0xFF2A2A2A),
                                                 shape = RoundedCornerShape(12.dp)
+
                                             )
+                                            .clickable {
+                                                // Save selected permission
+                                                navController.currentBackStackEntry?.savedStateHandle?.set("selectedPermission", perm.name)
+
+                                                // ✅ Yahan pe sari apps pass karo
+                                                navController.currentBackStackEntry?.savedStateHandle?.set("allApps", listOf(app))
+
+                                                // Navigate
+                                                val encodedPermission = URLEncoder.encode(perm.name, "UTF-8")
+                                                navController.navigate("permission_details/$encodedPermission")
+                                            }
+
                                             .padding(horizontal = 12.dp, vertical = 6.dp)
                                     ) {
                                         Text(text = perm.toString(), fontSize = 12.sp, color = Color.Cyan)

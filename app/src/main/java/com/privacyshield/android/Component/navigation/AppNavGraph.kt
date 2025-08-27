@@ -38,7 +38,7 @@ fun AppNavGraph(startDestination: String = AppRoute.Splash.route,  activity: Act
         ) { backStackEntry ->
             val appDetail = backStackEntry.arguments?.getParcelable<AppDetail>("app")
             appDetail?.let {
-                DetailsScreen(it)
+                DetailsScreen(it,navController)
             }
         }
 
