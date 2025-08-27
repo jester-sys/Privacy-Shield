@@ -135,7 +135,7 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
             composable(BottomNavItem.Overview.route.route) { OverviewScreen() }
             composable(BottomNavItem.Permission.route.route) { PermissionScreen() }
 
-            // ✅ DetailsScreen destination
+
             composable("details") {
                 val app =
                     navController.previousBackStackEntry?.savedStateHandle?.get<AppDetail>("selectedApp")

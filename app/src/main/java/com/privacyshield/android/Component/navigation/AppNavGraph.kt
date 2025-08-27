@@ -19,7 +19,7 @@ fun AppNavGraph(startDestination: String = AppRoute.Splash.route,  activity: Act
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = startDestination) {
-        // Splash
+
         composable(AppRoute.Splash.route) {
             SplashScreen {
                 navController.navigate(AppRoute.Main.route) {
@@ -28,7 +28,7 @@ fun AppNavGraph(startDestination: String = AppRoute.Splash.route,  activity: Act
             }
         }
 
-        // Main with bottom nav
+
         composable(AppRoute.Main.route) {
             MainScreen(navController = rememberNavController(), activity = activity)
         }
