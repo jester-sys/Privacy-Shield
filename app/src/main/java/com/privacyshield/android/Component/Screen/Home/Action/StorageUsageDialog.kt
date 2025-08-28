@@ -74,7 +74,8 @@ fun StorageUsageDialog(
                         Text(
                             usage.appName,
                             style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
                         )
                     }
                 }
@@ -99,7 +100,8 @@ fun StorageUsageDialog(
                         Formatter.formatFileSize(LocalContext.current, usage.totalBytes) 
                     }",
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White
                 )
 
                 Spacer(Modifier.height(16.dp))
@@ -150,11 +152,12 @@ fun StorageUsageItem(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(label, style = MaterialTheme.typography.bodyMedium)
+            Text(label, style = MaterialTheme.typography.bodyMedium,  color = Color.White)
             Text(
                 Formatter.formatFileSize(context, value),
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
             )
         }
 

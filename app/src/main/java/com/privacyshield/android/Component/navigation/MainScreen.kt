@@ -1,10 +1,14 @@
 package com.privacyshield.android.Component.navigation
 
-import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -17,10 +21,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -30,17 +38,24 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import com.privacyshield.android.Component.Screen.Deatils.DetailsScreen
+import com.privacyshield.android.Component.Screen.Home.Action.AppDataUsageCard
+import com.privacyshield.android.Component.Screen.Home.Action.ManagePermissions
+import com.privacyshield.android.Component.Screen.Home.Action.StorageUsageDialog
+import com.privacyshield.android.Component.Screen.Home.Action.manageOpenByDefault
+import com.privacyshield.android.Component.Screen.Home.Action.openApp
+import com.privacyshield.android.Component.Screen.Home.Action.shareApp
+import com.privacyshield.android.Component.Screen.Home.Action.showBatteryUsage
+import com.privacyshield.android.Component.Screen.Home.Action.showStorageUsage
+import com.privacyshield.android.Component.Screen.Home.Action.uninstallApp
 import com.privacyshield.android.Component.Screen.Home.HomeScreen
-import com.privacyshield.android.Component.Screen.OverviewScreen
+import com.privacyshield.android.Component.Screen.Home.utility.AppActionPopupMenu
+import com.privacyshield.android.Component.Screen.Model.StorageUsage
+import com.privacyshield.android.Component.Screen.Overview.OverviewScreen
 import com.privacyshield.android.Component.Screen.Permission.PermissionDetailsScreen
-import com.privacyshield.android.Component.Screen.PermissionScreen
 import com.privacyshield.android.Model.AppDetail
-import com.privacyshield.android.ui.theme.BackgroundLight
 import com.privacyshield.android.ui.theme.BluePrimary
-import com.privacyshield.android.ui.theme.SurfaceDark
 
 
-@SuppressLint("RememberReturnType")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(navController: NavHostController, activity: Activity) {
@@ -57,6 +72,72 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
         currentRoute?.startsWith("permission_details") == false &&
                 currentRoute != "details"
 
+    // State for bottom sheet
+    var showAppMenu by remember { mutableStateOf(false) }
+    var selectedApp by remember { mutableStateOf<AppDetail?>(null) }
+    val context = LocalContext.current
+
+    // Dialog states
+    var showDataUsageDialog by remember { mutableStateOf(false) }
+    var showBatteryUsageDialog by remember { mutableStateOf(false) }
+    var showStorageUsageDialog by remember { mutableStateOf(false) }
+    var showPermissionsDialog by remember { mutableStateOf(false) }
+    var storageUsage by remember { mutableStateOf<StorageUsage?>(null) }
+    // Inside NavHost composable("details") { ... }
+    val app = navController.previousBackStackEntry
+        ?.savedStateHandle
+        ?.get<AppDetail>("selectedApp")
+
+// Assign app to MainScreen state for bottom sheet
+    LaunchedEffect(app) {
+        if (app != null) selectedApp = app
+    }
+
+    if (showDataUsageDialog) {
+        app?.let {
+            AppDataUsageCard(context, it, onDismiss = {
+                showDataUsageDialog = false
+            })
+        } // Composable dialog
+    }
+    if (showBatteryUsageDialog) {
+        if (app != null) {
+            showBatteryUsage(context, app)
+        }
+
+
+    }
+    if (showStorageUsageDialog) {
+        app?.let { nonNullApp ->
+            LaunchedEffect(nonNullApp) {
+                storageUsage = showStorageUsage(context, nonNullApp)
+            }
+
+            storageUsage?.let { usage ->
+                StorageUsageDialog(
+                    context = context,
+                    usage = usage,
+                    app = nonNullApp,
+                    onDismiss = {
+                        showStorageUsageDialog = false
+                        storageUsage = null
+                    }
+                )
+            }
+        }
+    }
+
+    if (showPermissionsDialog) {
+        ManagePermissions(
+            context = context,
+            app = app!!,
+            showDialog = showPermissionsDialog,
+            onDismiss = { showPermissionsDialog = false }
+        )
+    }
+
+
+
     Scaffold(
         topBar = {
             when {
@@ -68,6 +149,38 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                                 Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                             }
                         },
+                        actions = {
+                            IconButton(onClick = {
+                                selectedApp?.let {
+                                    showAppMenu = true
+                                }
+                            }) {
+                                Icon(Icons.Default.MoreVert, contentDescription = "More", tint = Color.White)
+                            }
+
+
+
+                            IconButton(onClick = {
+                                try {
+                                    val intent = Intent("android.intent.action.MANAGE_APP_PERMISSIONS").apply {
+                                        data = Uri.fromParts("package", app?.packageName, null)
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                    val fallbackIntent =
+                                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                            data = Uri.parse("package:${app?.packageName}")
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
+                                    context.startActivity(fallbackIntent)
+                                }
+                            }) {
+                                Icon(Icons.Default.Info, contentDescription = "Settings", tint = Color.White)
+                            }
+                        }
+                        ,
                         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E1E1E))
                     )
                 }
@@ -183,10 +296,32 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                             navController.currentBackStackEntry?.savedStateHandle?.set("selectedApp", app)
                             navController.currentBackStackEntry?.savedStateHandle?.set("allApps", allApps)
                             navController.navigate("details")
-                        }
+                         }
                     )
                 }
             }
+        }
+        // BottomSheet for More Actions
+        selectedApp?.let { app ->
+            AppActionPopupMenu(
+                showSheet = showAppMenu,
+                onDismiss = { showAppMenu = false },
+                app = app,
+                onAction = { clickedApp, action ->
+                    when (action) {
+                        "data_usage" -> showDataUsageDialog = true
+                        "battery_usage" -> showBatteryUsageDialog = true
+                        "storage_usage" -> showStorageUsageDialog = true
+                        "permissions" -> showPermissionsDialog = true
+                        "open_by_default" -> manageOpenByDefault(context, clickedApp)
+                        "open" -> openApp(context, clickedApp)
+                        "uninstall" -> uninstallApp(activity, clickedApp)
+                        "share" -> shareApp(context, clickedApp)
+                    }
+
+                }
+
+            )
         }
     }
 }

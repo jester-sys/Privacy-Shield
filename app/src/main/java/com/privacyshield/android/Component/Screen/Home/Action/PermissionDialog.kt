@@ -49,7 +49,8 @@ fun PermissionDialog(
                 Text(
                     text = "Manage Permissions",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -58,16 +59,16 @@ fun PermissionDialog(
                 Text(
                     text = "To manage permissions for ${app.appName}, follow these steps:",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White
+                    color = Color.White,
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Text("1. Open App Info screen", style = MaterialTheme.typography.bodySmall)
+                Text("1. Open App Info screen", style = MaterialTheme.typography.bodySmall,  color = Color.White)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("2. Tap on Permissions", style = MaterialTheme.typography.bodySmall)
+                Text("2. Tap on Permissions", style = MaterialTheme.typography.bodySmall,  color = Color.White)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("3. Allow or Deny required permissions", style = MaterialTheme.typography.bodySmall)
+                Text("3. Allow or Deny required permissions", style = MaterialTheme.typography.bodySmall,  color = Color.White)
 
                 Spacer(modifier = Modifier.height(16.dp))
 
