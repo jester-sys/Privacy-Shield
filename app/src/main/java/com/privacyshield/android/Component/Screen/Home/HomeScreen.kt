@@ -61,7 +61,7 @@ import com.privacyshield.android.ViewModel.HomeViewModel
 @Composable
 fun HomeScreen(
     homeViewModel: HomeViewModel = hiltViewModel(),
-    onAppClick: (AppDetail) -> Unit,
+    onAppClick: (AppDetail, List<AppDetail>) -> Unit,   // 👈 yahan update
     activity: Activity
 ) {
     val apps = homeViewModel.appList
@@ -72,7 +72,6 @@ fun HomeScreen(
     var filterSheetOpen by remember { mutableStateOf(false) }
     var sortSheetOpen by remember { mutableStateOf(false) }
 
-
     val selectedFilters = remember { mutableStateListOf<FilterType>() }
     val pendingFilters = remember { mutableStateListOf<FilterType>() }
 
@@ -81,17 +80,12 @@ fun HomeScreen(
     // 🔎 Filtering + sorting
     var filteredApps = apps.filter { it.appName.contains(searchQuery, ignoreCase = true) }
 
-    filteredApps = applyFiltersEnum(
-        apps,
-        selectedFilters.toList(),
-        searchQuery
-    )
-
+    filteredApps = applyFiltersEnum(apps, selectedFilters.toList(), searchQuery)
     filteredApps = applySortingEnum(filteredApps, selectedSort)
 
-
-    Column(Modifier.fillMaxSize().background(Color(0xFF1E1E1E))) {
-
+    Column(
+        Modifier.fillMaxSize().background(Color(0xFF1E1E1E))
+    ) {
         SearchBarWithActions(
             searchQuery = searchQuery,
             onSearchChange = { searchQuery = it },
@@ -99,28 +93,25 @@ fun HomeScreen(
                 pendingFilters.clear()
                 pendingFilters.addAll(selectedFilters)
                 filterSheetOpen = true
-
-
             },
             onSortClick = { sortSheetOpen = true },
             filteredSize = filteredApps.size,
             totalSize = apps.size
-
         )
-
-//        AppCount(filteredApps.size, apps.size)
 
         AppList(
             activity = activity,
             loading = loading,
             apps = filteredApps,
-            onAppClick = onAppClick,
+            onAppClick = { app ->
+                onAppClick(app, apps)   // 👈 dono bhej diye
+            },
             onAction = { app, action ->
                 when (action) {
-                    "Open" -> { }
-                    "Uninstall" -> { /* uninstall logic */ }
-                    "Share" -> { /* share logic */ }
-                    "Details" -> onAppClick(app)
+                    "Open" -> {}
+                    "Uninstall" -> {}
+                    "Share" -> {}
+                    "Details" -> onAppClick(app, apps)   // 👈 yahan bhi
                 }
             }
         )

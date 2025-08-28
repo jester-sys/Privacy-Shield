@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -77,7 +78,9 @@ import com.privacyshield.android.Model.AppDetail
 import com.privacyshield.android.Model.AppPermission
 import com.privacyshield.android.R
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.NetworkCell
@@ -88,9 +91,14 @@ import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -99,6 +107,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.window.Dialog
 import com.privacyshield.android.Component.Screen.Home.utility.getPermissionDetails
+import com.privacyshield.android.Component.Screen.Permission.getPermissionExplanation
+import com.privacyshield.android.ui.theme.BluePrimary
+import kotlinx.coroutines.launch
 import java.sql.Date
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -335,12 +346,22 @@ fun AppDetailCard(
 
 
 
-
 @Composable
 fun ImportantPermissionsRow(app: AppDetail) {
     val context = LocalContext.current
-    var selectedPermissionInfo by remember { mutableStateOf(AnnotatedString("")) }
+    var selectedPermission by remember { mutableStateOf<AppPermission?>(null) }
     var showDialog by remember { mutableStateOf(false) }
+
+    var permissionExplanation by remember { mutableStateOf("Loading...") }
+    var permissionUseCases by remember { mutableStateOf<String?>(null) }
+    var permissionRisks by remember { mutableStateOf<String?>(null) }
+
+    var showUseCases by remember { mutableStateOf(false) }
+    var showRisks by remember { mutableStateOf(false) }
+
+
+
+    val coroutineScope = rememberCoroutineScope()
 
     val permissionsWithIcon = app.permissions.filter { perm ->
         val icon = getPermissionIcon(perm)
@@ -348,7 +369,6 @@ fun ImportantPermissionsRow(app: AppDetail) {
     }
 
     if (permissionsWithIcon.isNotEmpty()) {
-
         LazyRow(
             contentPadding = PaddingValues(start = 8.dp, end = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -363,9 +383,17 @@ fun ImportantPermissionsRow(app: AppDetail) {
                     modifier = Modifier
                         .size(40.dp)
                         .clickable {
-                            selectedPermissionInfo = getPermissionDetails(perm)
-
+                            selectedPermission = perm
+                            permissionExplanation = "Loading..."
+                            permissionUseCases = null
+                            permissionRisks = null
+                            showUseCases = false
+                            showRisks = false
                             showDialog = true
+
+                            coroutineScope.launch {
+                                permissionExplanation = getPermissionExplanation(perm.name)
+                            }
                         },
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
@@ -385,44 +413,154 @@ fun ImportantPermissionsRow(app: AppDetail) {
         }
     }
 
-    if (showDialog) {
+    if (showDialog && selectedPermission != null) {
         Dialog(onDismissRequest = { showDialog = false }) {
             Surface(
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
-                    .fillMaxWidth().
-                    padding(16.dp)
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                color = Color(0xFF1E1E1E),
+                tonalElevation = 8.dp
             ) {
-                Box(modifier = Modifier.background(Color(0xFF121212)).padding(16.dp)) {
-                Column(modifier = Modifier.background(Color(0xFF121212))) {
+                Column(
+                    modifier = Modifier
+                        .background(Color(0xFF1E1E1E))
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    // --- Title ---
                     Text(
                         text = "Permission Details",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
+                        fontSize = 22.sp,
                         color = Color.White
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
-                    // Show your AnnotatedString here
+                    // --- Permission name ---
                     Text(
-                        text = selectedPermissionInfo, // should be AnnotatedString
-                        style = TextStyle(fontSize = 16.sp)
+                        text = selectedPermission!!.name,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 18.sp,
+                        style = TextStyle(
+                            brush = Brush.linearGradient(
+                                listOf(Color(0xFF9C27B0), Color(0xFFE91E63))
+                            )
+                        )
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // --- Explanation ---
+                    Text(
+                        text = permissionExplanation ?: "Loading...",
+                        fontSize = 16.sp,
+                        color = Color.White
+                    )
+
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Row(
-                        horizontalArrangement = Arrangement.End,
-                        modifier = Modifier.fillMaxWidth()
+                    // --- Buttons ---
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        TextButton(onClick = { showDialog = false }) {
+                        // Use Cases Button
+                        Button(
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF9C27B0),
+                                contentColor = Color.White
+                            ),
+                            onClick = {
+                                showUseCases = !showUseCases
+                                if (showUseCases) {
+                                    permissionUseCases = "Loading..."
+                                    coroutineScope.launch {
+                                        permissionUseCases =
+                                            getPermissionExplanation("${app.appName} uses ${selectedPermission!!.name} for")
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Use Cases")
+                        }
+
+                        // Use Cases Response (Button ke neeche hi)
+                        if (showUseCases && permissionUseCases != null) {
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = Color(0xFF9C27B0).copy(alpha = 0.1f)
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        text = permissionUseCases!!,
+                                        color = Color.White,
+                                        fontSize = 16.sp
+                                    )
+                                }
+                            }
+                        }
+
+                        // Risks Button
+                        Button(
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFE91E63),
+                                contentColor = Color.White
+                            ),
+                            onClick = {
+                                showRisks = !showRisks
+                                if (showRisks) {
+                                    permissionRisks = "Loading..."
+                                    coroutineScope.launch {
+                                        permissionRisks =
+                                            getPermissionExplanation("${app.appName} risks of ${selectedPermission!!.name}")
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Risks")
+                        }
+
+                        // Risks Response (Button ke neeche hi)
+                        if (showRisks && permissionRisks != null) {
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = Color(0xFFE91E63).copy(alpha = 0.1f)
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        text = permissionRisks!!,
+                                        color = Color.White,
+                                        fontSize = 16.sp
+                                    )
+                                }
+                            }
+                        }
+
+                        // Close Button
+                        Button(
+                            onClick = { showDialog = false },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = BluePrimary,
+                                contentColor = Color.White
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             Text("Close")
                         }
                     }
                 }
-                    }
             }
         }
     }
+
 
 }
 

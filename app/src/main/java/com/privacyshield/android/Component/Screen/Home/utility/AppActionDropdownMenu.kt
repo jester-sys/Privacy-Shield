@@ -68,7 +68,7 @@ fun AppActionPopupMenu(
 ) {
     if (showSheet) {
         val context = LocalContext.current
-        val dominantColor = remember { mutableStateOf(Color(0xFF121212)) } // default dark gray
+        val dominantColor = remember { mutableStateOf(Color(0xFF1E1E1E)) } // default dark gray
         LaunchedEffect(app.packageName) {
             try {
                 val drawable = context.packageManager.getApplicationIcon(app.packageName)
@@ -87,7 +87,7 @@ fun AppActionPopupMenu(
 
         ModalBottomSheet(
             onDismissRequest = onDismiss,
-            containerColor = Color(0xFF050505),
+            containerColor = Color(0xFF121212),
             tonalElevation = 8.dp
         ) {
             Column(
@@ -147,7 +147,7 @@ fun AppActionPopupMenu(
                             Box(
                                 modifier = Modifier
                                     .size(54.dp)
-                                    .background(color.copy(alpha = 0.15f), RoundedCornerShape(12.dp)),
+                                    .background(color.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -185,7 +185,7 @@ fun AppActionPopupMenu(
                                 onAction(app, label.lowercase().replace(" ", "_"))
                             },
                         shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(80000000))
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
                     ) {
                         Row(
                             modifier = Modifier

@@ -20,10 +20,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -31,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -51,17 +56,19 @@ import java.net.URLEncoder
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun DetailsScreen(app: AppDetail,   navController: NavHostController) {
+fun DetailsScreen(app: AppDetail,   navController: NavHostController,   onPermissionClick: (String) -> Unit ) {
     val context = LocalContext.current
     val dominantGradient by remember {
         mutableStateOf(getDominantGradient(context, app.packageName))
     }
+    var showAiDialog by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF1E1E1E)),
     ) {
+
         Column(
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
@@ -165,15 +172,8 @@ fun DetailsScreen(app: AppDetail,   navController: NavHostController) {
                                                 shape = RoundedCornerShape(12.dp)
                                             )
                                             .clickable {
-                                                // Save selected permission
-                                                navController.currentBackStackEntry?.savedStateHandle?.set("selectedPermission", perm.name)
+                                                onPermissionClick(perm.name)
 
-                                                // ✅ Yahan pe sari apps pass karo
-                                                navController.currentBackStackEntry?.savedStateHandle?.set("allApps", listOf(app))
-
-                                                // Navigate
-                                                val encodedPermission = URLEncoder.encode(perm.name, "UTF-8")
-                                                navController.navigate("permission_details/$encodedPermission")
                                             }
                                             .padding(horizontal = 12.dp, vertical = 6.dp)
                                     ) {
@@ -200,15 +200,7 @@ fun DetailsScreen(app: AppDetail,   navController: NavHostController) {
                                                 shape = RoundedCornerShape(12.dp)
                                             )
                                             .clickable {
-                                                // Save selected permission
-                                                navController.currentBackStackEntry?.savedStateHandle?.set("selectedPermission", perm.name)
-
-
-                                                navController.currentBackStackEntry?.savedStateHandle?.set("allApps", listOf(app))
-
-                                                // Navigate
-                                                val encodedPermission = URLEncoder.encode(perm.name, "UTF-8")
-                                                navController.navigate("permission_details/$encodedPermission")
+                                                onPermissionClick(perm.name)
                                             }
 
                                             .padding(horizontal = 12.dp, vertical = 6.dp)
@@ -260,6 +252,22 @@ fun DetailsScreen(app: AppDetail,   navController: NavHostController) {
                 }
             }
         }
+
+        FloatingActionButton(
+            onClick = { showAiDialog = true }, // <-- Click pe dialog show hoga
+            containerColor = Color(0xFF9C27B0),
+            contentColor = Color.White,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            Icon(imageVector = Icons.Default.Info, contentDescription = "AI Info")
+        }
+        if (showAiDialog) {
+            DetailsScreenWithAISuggestions(app = app, navController = navController)
+        }
+
+
     }
 }
 

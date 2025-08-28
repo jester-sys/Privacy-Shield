@@ -15,11 +15,15 @@ import com.privacyshield.android.Component.Screen.SplashScreen
 import com.privacyshield.android.Model.AppDetail
 
 @Composable
-fun AppNavGraph(startDestination: String = AppRoute.Splash.route,  activity: Activity) {
+fun AppNavGraph(
+    startDestination: String = AppRoute.Splash.route,
+    activity: Activity
+) {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = startDestination) {
 
+        // Splash
         composable(AppRoute.Splash.route) {
             SplashScreen {
                 navController.navigate(AppRoute.Main.route) {
@@ -28,19 +32,27 @@ fun AppNavGraph(startDestination: String = AppRoute.Splash.route,  activity: Act
             }
         }
 
-
+        // Main
         composable(AppRoute.Main.route) {
             MainScreen(navController = rememberNavController(), activity = activity)
         }
+
+        // Direct App Details (not used inside bottomNav but keeping it)
         composable(
             route = "${AppRoute.Details.route}/{app}",
             arguments = listOf(navArgument("app") { type = NavType.ParcelableType(AppDetail::class.java) })
         ) { backStackEntry ->
             val appDetail = backStackEntry.arguments?.getParcelable<AppDetail>("app")
-            appDetail?.let {
-                DetailsScreen(it,navController)
+            appDetail?.let { app ->
+                DetailsScreen(
+                    app,
+                    navController,
+                    onPermissionClick = { permission ->
+                        navController.navigate("permission_details/$permission")
+                     }
+                )
             }
-        }
 
+        }
     }
 }
