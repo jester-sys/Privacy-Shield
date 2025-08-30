@@ -483,7 +483,10 @@ fun InfoHintBox(text: String, color: Color) {
             .background(color.copy(alpha = 0.12f))
             .padding(12.dp)
     ) {
-        Text(text, color = Color.White)
+        Text(text, color = Color.White,
+            style = MaterialTheme.typography.titleSmall.copy(
+                fontWeight = FontWeight.SemiBold,
+            ))
     }
 }
 

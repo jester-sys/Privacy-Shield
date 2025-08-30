@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.ai.client.generativeai.GenerativeModel
 import com.privacyshield.android.Component.Screen.Overview.Utility.OsViewModel
@@ -86,7 +87,7 @@ fun OsTab(viewModel: OsViewModel = hiltViewModel()) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    color = Color(0xFF00796B),
+                    color = Color(0xFF00BCD4),
                     trackColor = Color.DarkGray
                 )
             }
@@ -105,7 +106,7 @@ fun OsTab(viewModel: OsViewModel = hiltViewModel()) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(
-                                    Color(0xFF00796B).copy(alpha = 0.12f),
+                                    Color(0xFF00BCD4).copy(alpha = 0.12f),
                                     shape = RoundedCornerShape(16.dp)
                                 )
                                 .padding(16.dp)
@@ -115,7 +116,7 @@ fun OsTab(viewModel: OsViewModel = hiltViewModel()) {
                                 Text(
                                     "AI  Android OS Assistant",
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = Color(0xFF00796B)
+                                    color = Color(0xFF00BCD4)
                                 )
 
 
@@ -196,7 +197,7 @@ fun OsTab(viewModel: OsViewModel = hiltViewModel()) {
                                             enabled = question.isNotBlank(),
                                             colors = ButtonDefaults.buttonColors(containerColor = Color.White)
                                         ) {
-                                            Text("Ask AI", color = Color(0xFF00796B))
+                                            Text("Ask AI", color = Color(0xFF00BCD4))
                                         }
 
                                         OutlinedButton(
@@ -240,7 +241,7 @@ fun OsTab(viewModel: OsViewModel = hiltViewModel()) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFF00796B).copy(alpha = 0.12f))
+                            .background(Color(0xFF2A2A2A))
                             .padding(12.dp)
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -252,8 +253,12 @@ fun OsTab(viewModel: OsViewModel = hiltViewModel()) {
                                 )
                             )
                             Text(
-                                text =  "$androidVersion (SDK $sdk)",
-                                style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF00796B))
+                                text = "$androidVersion (SDK $sdk)",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = Color(0xFF00BCD4),
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp
+                                )
                             )
                             Spacer(Modifier.height(6.dp))
 
@@ -280,7 +285,7 @@ fun OsTab(viewModel: OsViewModel = hiltViewModel()) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(14.dp))
-                            .background(patchColor.copy(alpha = 0.12f))
+                            .background(Color(0xFF2A2A2A))
                             .padding(12.dp)
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -293,7 +298,13 @@ fun OsTab(viewModel: OsViewModel = hiltViewModel()) {
                             )
                             Text(
                                 text = if (days >= 0) "$securityPatch — $days days ago" else securityPatch,
-                                style = MaterialTheme.typography.bodySmall.copy(color = patchColor)
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = Color(
+                                        0xFF00BCD4
+                                    )
+                                ),
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
                             )
                             Spacer(Modifier.height(6.dp))
 
@@ -304,40 +315,37 @@ fun OsTab(viewModel: OsViewModel = hiltViewModel()) {
                 item { SectionHeader("Build & Kernel", Color(0xFFE0E0E0)) }
 
                 item {
-                    TintedStatBox(
+                    OsStatBox(
                         title = "Kernel",
                         value = kernel.ifBlank { "Unavailable" },
-                        progress = 1f,
-                        color = Color(0xFF1976D2)
+                        color = Color(0xFF00BCD4)
                     )
                 }
 
                 item {
-                    TintedStatBox(
+                    OsStatBox(
                         title = "Bootloader",
                         value = bootloader,
-                        progress = 1f,
-                        color = Color(0xFF1976D2)
+                        color = Color(0xFF00BCD4)
                     )
                 }
 
                 item {
-                    TintedStatBox(
+                    OsStatBox(
                         title = "Build Fingerprint",
                         value = fingerprint,
-                        progress = 1f,
-                        color = Color(0xFF1976D2)
+                        color = Color(0xFF00BCD4)
                     )
+
                 }
 
                 item { SectionHeader("Runtime / Security", Color(0xFFE0E0E0)) }
 
                 item {
-                    TintedStatBox(
+                    OsStatBox(
                         title = "Uptime",
                         value = uptime,
-                        progress = 1f,
-                        color = Color(0xFF9C27B0)
+                        color = Color(0xFF00BCD4)
                     )
                 }
 
@@ -376,19 +384,19 @@ fun OsTab(viewModel: OsViewModel = hiltViewModel()) {
                 item { SectionHeader("Locale & Misc", Color(0xFFE0E0E0)) }
 
                 item {
-                    TintedStatBox(
+                    OsStatBox(
                         title = "Timezone",
                         value = timezone,
-                        progress = 1f,
+
                         color = Color(0xFF00BCD4)
                     )
                 }
 
+
                 item {
-                    TintedStatBox(
+                    OsStatBox(
                         title = "Locale",
                         value = locale,
-                        progress = 1f,
                         color = Color(0xFF00BCD4)
                     )
                 }
@@ -411,6 +419,7 @@ fun OsTab(viewModel: OsViewModel = hiltViewModel()) {
                                     color = Color.White
                                 )
                             )
+                            Spacer(Modifier.height(4.dp))
                             Text(
                                 text = when (isRooted) {
                                     true -> "Yes — device shows su binaries / which su"
@@ -421,7 +430,10 @@ fun OsTab(viewModel: OsViewModel = hiltViewModel()) {
                                     true -> Color(0xFFF44336)
                                     false -> Color(0xFF4CAF50)
                                     else -> Color.White
-                                }
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
                             )
                         }
                     }
@@ -432,7 +444,7 @@ fun OsTab(viewModel: OsViewModel = hiltViewModel()) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF9E9E9E).copy(alpha = 0.12f))
+                            .background(Color(0xFF4CAF50).copy(alpha = 0.12f))
                             .padding(12.dp)
                     ) {
                         Column {
@@ -443,13 +455,17 @@ fun OsTab(viewModel: OsViewModel = hiltViewModel()) {
                                     color = Color.White
                                 )
                             )
+                            Spacer(Modifier.height(4.dp))
                             Text(
                                 text = when (hasGms) {
                                     true -> "Installed"
                                     false -> "Not found"
                                     else -> "Unknown"
                                 },
-                                color = if (hasGms == true) Color(0xFF4CAF50) else Color.White
+                                color = if (hasGms == true) Color(0xFF4CAF50) else Color.White,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
                             )
                         }
                     }
@@ -458,7 +474,8 @@ fun OsTab(viewModel: OsViewModel = hiltViewModel()) {
                 item {
                     InfoHintBox(
                         "Tip: For precise app-level storage and usage stats you may need special access (Usage / Storage) depending on Android version.",
-                        color = Color(0xFF00796B)
+                        color = Color(0xFF00BCD4),
+
                     )
                 }
             }
@@ -493,7 +510,7 @@ fun OsTab(viewModel: OsViewModel = hiltViewModel()) {
                 }
 
             },
-            containerColor = Color(0xFF7B1FA2),
+            containerColor = Color(0xFF00BCD4),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
@@ -505,6 +522,47 @@ fun OsTab(viewModel: OsViewModel = hiltViewModel()) {
         }
     }
 }
+
+@Composable
+fun OsStatBox(
+    title: String,
+    value: String,
+    color: Color
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0xFF2A2A2A))
+            .padding(14.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+            )
+
+
+
+
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodySmall.copy(color = color),
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp
+            )
+
+
+        }
+    }
+}
+
 
 suspend fun getAndroidInfoExplanation(
     androidVersion: String,

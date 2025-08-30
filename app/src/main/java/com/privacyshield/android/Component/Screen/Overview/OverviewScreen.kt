@@ -60,9 +60,9 @@ fun OverviewScreen() {
         Color(0xFF388E3C), // GPU -> Green
         Color(0xFFF57C00), // RAM -> Orange
         Color(0xFF7B1FA2), // Storage -> Purple
-        Color(0xFF00796B), // OS -> Teal
+        Color(0xFF00BCD4), // OS -> Teal
         Color(0xFFD32F2F), // Hardware -> Red
-        Color(0xFF455A64)  // Sensors -> Gray
+        Color(0xFF1DE9B6)  // Sensors -> Gray
     )
 
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { tabs.size })
