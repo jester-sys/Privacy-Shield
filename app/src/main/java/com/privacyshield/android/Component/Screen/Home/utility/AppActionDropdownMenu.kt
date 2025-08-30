@@ -137,7 +137,7 @@ fun AppActionPopupMenu(
                 ) {
                     actions.forEach { (label, icon, color) ->
                         Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
+                          horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
                                 .clickable {
                                     onDismiss()

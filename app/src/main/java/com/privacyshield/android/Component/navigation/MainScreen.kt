@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -196,6 +197,20 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E1E1E))
                     )
                 }
+                currentRoute == "overview" -> {
+                    TopAppBar(
+                        title = { Text("Device Info", color = Color.White) },
+                        actions = {
+                            IconButton(onClick = {
+                                navController.navigate("settings")
+                            }) {
+                                Icon(Icons.Default.Settings, contentDescription = "Settings", tint = Color.White)
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E1E1E))
+                    )
+                }
+
             }
         },
         bottomBar = {

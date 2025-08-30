@@ -42,6 +42,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,6 +53,7 @@ import com.privacyshield.android.Component.Screen.Deatils.utility.formatSourceDi
 import com.privacyshield.android.Component.Screen.Deatils.utility.getDominantGradient
 import com.privacyshield.android.Component.Screen.Home.formatTime
 import com.privacyshield.android.Model.AppDetail
+import com.privacyshield.android.R
 import java.net.URLEncoder
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -261,7 +263,10 @@ fun DetailsScreen(app: AppDetail,   navController: NavHostController,   onPermis
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
         ) {
-            Icon(imageVector = Icons.Default.Info, contentDescription = "AI Info")
+            Icon(
+                painter = painterResource(id = R.drawable.ic_ai_icon), // <-- drawable icon
+                contentDescription = "AI Info"
+            )
         }
         if (showAiDialog) {
             DetailsScreenWithAISuggestions(app = app, navController = navController)

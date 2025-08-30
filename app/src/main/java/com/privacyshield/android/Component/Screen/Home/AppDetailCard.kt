@@ -106,7 +106,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.window.Dialog
-import com.privacyshield.android.Component.Screen.Home.utility.getPermissionDetails
 import com.privacyshield.android.Component.Screen.Permission.getPermissionExplanation
 import com.privacyshield.android.ui.theme.BluePrimary
 import kotlinx.coroutines.launch

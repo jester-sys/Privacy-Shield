@@ -123,7 +123,7 @@ fun DetailsScreenWithAISuggestions(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .background(
-                                            Color(0xFF9C27B0).copy(alpha = 0.1f),
+                                            Color(0xFF9C27B0).copy(alpha = 0.15f),
                                             shape = RoundedCornerShape(14.dp)
                                         )
                                         .padding(vertical = 16.dp, horizontal = 8.dp)
