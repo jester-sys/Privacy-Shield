@@ -123,18 +123,21 @@ fun openApp(context: Context, app: AppDetail) {
     }
 }
 
-fun uninstallApp(activity: Activity, app: AppDetail) {
+fun uninstallApp(context: Context, app: AppDetail) {
     try {
-        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-            data = Uri.parse("package:${app.packageName}")
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        }
-        activity.startActivity(intent)
+        val packageUri = Uri.parse("package:${app.packageName}")
+        val uninstallIntent = Intent(Intent.ACTION_UNINSTALL_PACKAGE, packageUri)
+        context.startActivity(uninstallIntent)
     } catch (e: Exception) {
         e.printStackTrace()
-        Toast.makeText(activity, "Cannot open app settings for ${app.appName}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(
+           context,
+            "Cannot uninstall ${app.appName}",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 }
+
 
 fun shareApp(context: Context, app: AppDetail) {
     val intent = android.content.Intent(android.content.Intent.ACTION_SEND)

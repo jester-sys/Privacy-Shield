@@ -121,7 +121,6 @@ fun AppDetailCard(
     app: AppDetail,
     onViewDetails: (AppDetail) -> Unit,
     onAction: (AppDetail, String) -> Unit,
-    activity: Activity
 ) {
 
     var showMenu by remember { mutableStateOf(false) }
@@ -293,7 +292,7 @@ fun AppDetailCard(
                     "permissions" -> showPermissionsDialog = true
                     "open_by_default" -> manageOpenByDefault(context, clickedApp)
                     "open" -> openApp(context, clickedApp)
-                    "uninstall" -> uninstallApp(activity, clickedApp)
+                    "uninstall" -> uninstallApp(context, clickedApp)
                     "share" -> shareApp(context, clickedApp)
                 }
             }

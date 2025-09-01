@@ -6,6 +6,7 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
@@ -39,6 +40,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import com.privacyshield.android.Component.Screen.Deatils.DetailsScreen
+import com.privacyshield.android.Component.Screen.Deatils.utility.AppMoreMenu
 import com.privacyshield.android.Component.Screen.Home.Action.AppDataUsageCard
 import com.privacyshield.android.Component.Screen.Home.Action.ManagePermissions
 import com.privacyshield.android.Component.Screen.Home.Action.StorageUsageDialog
@@ -53,6 +55,7 @@ import com.privacyshield.android.Component.Screen.Home.utility.AppActionPopupMen
 import com.privacyshield.android.Component.Screen.Model.StorageUsage
 import com.privacyshield.android.Component.Screen.Overview.OverviewScreen
 import com.privacyshield.android.Component.Screen.Permission.PermissionDetailsScreen
+import com.privacyshield.android.Component.Screen.UsageStatsScreen.AppUsageDetailsScreen
 import com.privacyshield.android.Model.AppDetail
 import com.privacyshield.android.ui.theme.BluePrimary
 
@@ -151,15 +154,20 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                             }
                         },
                         actions = {
+
+
                             IconButton(onClick = {
-                                selectedApp?.let {
-                                    showAppMenu = true
-                                }
+                                // App ko navController ke savedStateHandle me bhej do
+                                navController.currentBackStackEntry?.savedStateHandle?.set("selectedApp", app)
+                                navController.navigate("UsageDetail")
                             }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "More", tint = Color.White)
+                                Icon(
+                                    imageVector = Icons.Default.Analytics,
+                                    contentDescription = "Insights",
+                                    tint = Color.White
+                                )
+
                             }
-
-
 
                             IconButton(onClick = {
                                 try {
@@ -180,6 +188,24 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                             }) {
                                 Icon(Icons.Default.Info, contentDescription = "Settings", tint = Color.White)
                             }
+                            selectedApp?.let { app ->
+                                AppMoreMenu(
+                                    app = app,
+                                    onAction = { clickedApp, action ->
+                                        when (action) {
+                                            "data_usage" -> showDataUsageDialog = true
+                                            "battery_usage" -> showBatteryUsageDialog = true
+                                            "storage_usage" -> showStorageUsageDialog = true
+                                            "permissions" -> showPermissionsDialog = true
+                                            "open_by_default" -> manageOpenByDefault(context, clickedApp)
+                                            "open" -> openApp(context, clickedApp)
+                                            "uninstall" -> uninstallApp(activity, clickedApp)
+                                            "share" -> shareApp(context, clickedApp)
+                                        }
+                                    }
+                                )
+                            }
+
                         }
                         ,
                         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E1E1E))
@@ -274,6 +300,17 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
           //  composable(BottomNavItem.Permission.route.route) { PermissionScreen() }
 
             // App Details
+
+            composable("UsageDetail") {
+                val app = navController.previousBackStackEntry?.savedStateHandle?.get<AppDetail>("selectedApp")
+                if(app!=null){
+                AppUsageDetailsScreen(
+                    context = context,
+                    app = app,
+                    navController = navController
+                )
+                }
+            }
             composable("details") {
                 val app = navController.previousBackStackEntry?.savedStateHandle?.get<AppDetail>("selectedApp")
                 val allApps = navController.previousBackStackEntry?.savedStateHandle?.get<List<AppDetail>>("allApps") ?: emptyList()
@@ -287,6 +324,7 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                             navController.currentBackStackEntry?.savedStateHandle?.set("currentApp", app) // ✅ pure AppDetail bhej
                             navController.navigate("permission_details/$permission")
                         }
+
                     )
                 }
             }
@@ -316,27 +354,7 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                 }
             }
         }
-        // BottomSheet for More Actions
-        selectedApp?.let { app ->
-            AppActionPopupMenu(
-                showSheet = showAppMenu,
-                onDismiss = { showAppMenu = false },
-                app = app,
-                onAction = { clickedApp, action ->
-                    when (action) {
-                        "data_usage" -> showDataUsageDialog = true
-                        "battery_usage" -> showBatteryUsageDialog = true
-                        "storage_usage" -> showStorageUsageDialog = true
-                        "permissions" -> showPermissionsDialog = true
-                        "open_by_default" -> manageOpenByDefault(context, clickedApp)
-                        "open" -> openApp(context, clickedApp)
-                        "uninstall" -> uninstallApp(activity, clickedApp)
-                        "share" -> shareApp(context, clickedApp)
-                    }
 
-                }
 
-            )
-        }
     }
 }

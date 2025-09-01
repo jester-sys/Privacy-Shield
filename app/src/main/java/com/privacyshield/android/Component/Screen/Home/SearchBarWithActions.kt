@@ -144,7 +144,6 @@ fun AppList(
             LazyColumn(Modifier.fillMaxSize()) {
                 items(apps) { app ->
                     AppDetailCard(
-                        activity = activity,
                         app = app,
                         onViewDetails = onAppClick,
                         onAction = onAction

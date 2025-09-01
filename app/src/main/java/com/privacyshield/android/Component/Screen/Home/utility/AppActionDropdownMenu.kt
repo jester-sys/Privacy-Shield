@@ -124,45 +124,23 @@ fun AppActionPopupMenu(
                     }
                 }
 
-                // Action Buttons
-                val actions = listOf(
-                    Triple("Open", Icons.Default.PlayArrow, Color(0xFF4CAF50)),
-                    Triple("Uninstall", Icons.Default.Delete, Color(0xFFF44336)),
-                    Triple("Share", Icons.Default.Share, Color(0xFF2196F3))
-                )
+//                // Action Buttons
+//                val actions = listOf(
+//                    Triple("Open", Icons.Default.PlayArrow, Color(0xFF4CAF50)),
+//                    Triple("Uninstall", Icons.Default.Delete, Color(0xFFF44336)),
+//                    Triple("Share", Icons.Default.Share, Color(0xFF2196F3))
+//                )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    actions.forEach { (label, icon, color) ->
-                        Column(
-                          horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .clickable {
-                                    onDismiss()
-                                    onAction(app, label.lowercase())
-                                }
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(54.dp)
-                                    .background(color.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    icon,
-                                    contentDescription = label,
-                                    tint = color,
-                                    modifier = Modifier.size(28.dp)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(label, fontWeight = FontWeight.SemiBold, color = Color.White, fontSize = 14.sp,)
-                        }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        OpenAction(app, onDismiss, onAction)
+                        UninstallAction(app, onDismiss, onAction)
+                        ShareAction(app, onDismiss, onAction)
                     }
-                }
+
+
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -227,5 +205,64 @@ fun AppActionPopupMenu(
 
             }
         }
+    }
+}
+
+@Composable
+fun ActionButton(
+    label: String,
+    icon: ImageVector,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clickable { onClick() }
+    ) {
+        Box(
+            modifier = Modifier
+                .size(54.dp)
+                .background(color.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                icon,
+                contentDescription = label,
+                tint = color,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = label,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White,
+            fontSize = 14.sp
+        )
+    }
+}
+
+@Composable
+fun OpenAction(app: AppDetail, onDismiss: () -> Unit, onAction: (AppDetail, String) -> Unit) {
+    ActionButton("Open", Icons.Default.PlayArrow, Color(0xFF4CAF50)) {
+        onDismiss()
+        onAction(app, "open")
+    }
+}
+
+@Composable
+fun UninstallAction(app: AppDetail, onDismiss: () -> Unit, onAction: (AppDetail, String) -> Unit) {
+    ActionButton("Uninstall", Icons.Default.Delete, Color(0xFFF44336)) {
+        onDismiss()
+        onAction(app, "uninstall")
+    }
+}
+
+@Composable
+fun ShareAction(app: AppDetail, onDismiss: () -> Unit, onAction: (AppDetail, String) -> Unit) {
+    ActionButton("Share", Icons.Default.Share, Color(0xFF2196F3)) {
+        onDismiss()
+        onAction(app, "share")
     }
 }
