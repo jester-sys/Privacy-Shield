@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat.startActivity
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -74,9 +75,8 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
 
     val shouldShowBottomBar =
         currentRoute?.startsWith("permission_details") == false &&
-                currentRoute != "details"
+                currentRoute != "details" && currentRoute != "UsageDetail"
 
-    // State for bottom sheet
     var showAppMenu by remember { mutableStateOf(false) }
     var selectedApp by remember { mutableStateOf<AppDetail?>(null) }
     val context = LocalContext.current
@@ -231,6 +231,34 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                                 navController.navigate("settings")
                             }) {
                                 Icon(Icons.Default.Settings, contentDescription = "Settings", tint = Color.White)
+                            }
+
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E1E1E))
+                    )
+                }
+
+                currentRoute?.startsWith("UsageDetail") == true ->{
+                    TopAppBar(
+                        title = { Text("${app?.appName} Insights", color = Color.White) },
+                        actions = {
+                            IconButton(onClick = {
+                                val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                                intent.data = Uri.parse("package:${app?.packageName}") // yahan app ka package name
+                                context.startActivity(intent)
+
+                            }) {
+                                Icon(
+                                    imageVector =Icons.Default.Settings,
+                                    contentDescription = "settings",
+                                    tint = Color.White
+                                )
+
+                            }
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                             }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E1E1E))
