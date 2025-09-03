@@ -71,7 +71,7 @@ fun OverviewScreen() {
     Column {
         ScrollableTabRow(
             selectedTabIndex = pagerState.currentPage,
-            containerColor = Color(0xFF1E1E1E),
+            containerColor = Color(0xFF121212),
             contentColor = Color.White,
             edgePadding = 8.dp,
             // ✅ Custom indicator
@@ -80,7 +80,7 @@ fun OverviewScreen() {
                     Modifier
                         .tabIndicatorOffset(tabPositions[pagerState.currentPage]),
                     height = 3.dp,
-                    color = tabColors[pagerState.currentPage] // selected tab ka color
+                    color = tabColors[pagerState.currentPage]  // selected tab ka color
                 )
             }
         ) {

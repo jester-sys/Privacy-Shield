@@ -40,7 +40,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
+import com.privacyshield.android.Component.MemoryManager.MemoryManagerScreen
+import com.privacyshield.android.Component.Scanner.ScannerScreen
 import com.privacyshield.android.Component.Screen.Deatils.DetailsScreen
+import com.privacyshield.android.Component.Screen.Deatils.PermissionSection
 import com.privacyshield.android.Component.Screen.Deatils.utility.AppMoreMenu
 import com.privacyshield.android.Component.Screen.Home.Action.AppDataUsageCard
 import com.privacyshield.android.Component.Screen.Home.Action.ManagePermissions
@@ -66,8 +69,9 @@ import com.privacyshield.android.ui.theme.BluePrimary
 fun MainScreen(navController: NavHostController, activity: Activity) {
     val bottomItems = listOf(
         BottomNavItem.Home,
+        BottomNavItem.Scanner,
         BottomNavItem.Overview,
-        BottomNavItem.Permission
+        BottomNavItem.MemoryManager
     )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -323,6 +327,11 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
 
             // Overview
             composable(BottomNavItem.Overview.route.route) { OverviewScreen() }
+
+            // Overview
+            composable(BottomNavItem.Scanner.route.route) { ScannerScreen() }
+
+            composable(BottomNavItem.MemoryManager.route.route) { MemoryManagerScreen() }
 
             // Permission Tab
           //  composable(BottomNavItem.Permission.route.route) { PermissionScreen() }

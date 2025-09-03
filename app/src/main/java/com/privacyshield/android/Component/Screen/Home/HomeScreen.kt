@@ -84,7 +84,7 @@ fun HomeScreen(
     filteredApps = applySortingEnum(filteredApps, selectedSort)
 
     Column(
-        Modifier.fillMaxSize().background(Color(0xFF1E1E1E))
+        Modifier.fillMaxSize().background(Color(0xFF121212))
     ) {
         SearchBarWithActions(
             searchQuery = searchQuery,

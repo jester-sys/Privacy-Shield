@@ -145,7 +145,7 @@ fun AppDetailCard(
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 4.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF121212))
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
     ){
 
 
@@ -418,12 +418,12 @@ fun ImportantPermissionsRow(app: AppDetail) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                color = Color(0xFF1E1E1E),
+                color = Color(0xFF121212),
                 tonalElevation = 8.dp
             ) {
                 Column(
                     modifier = Modifier
-                        .background(Color(0xFF1E1E1E))
+                        .background(Color(0xFF121212))
                         .padding(16.dp)
                         .verticalScroll(rememberScrollState())
                 ) {

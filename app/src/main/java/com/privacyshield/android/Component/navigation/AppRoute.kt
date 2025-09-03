@@ -6,7 +6,8 @@ sealed class AppRoute(val route: String) {
 
 
     data object Home : AppRoute("home")
+    data object Scanner: AppRoute("scanner")
     data object Overview : AppRoute("overview")
-    data object Permission : AppRoute("permission")
+    data object MemoryManager : AppRoute("memory_manager")
     data object Details :  AppRoute("details")
 }
