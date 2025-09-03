@@ -11,6 +11,9 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Sort
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,6 +44,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import com.privacyshield.android.Component.MemoryManager.MemoryManagerScreen
+import com.privacyshield.android.Component.Scanner.FileDetailScreen
 import com.privacyshield.android.Component.Scanner.ScannerScreen
 import com.privacyshield.android.Component.Screen.Deatils.DetailsScreen
 import com.privacyshield.android.Component.Screen.Deatils.PermissionSection
@@ -62,6 +66,7 @@ import com.privacyshield.android.Component.Screen.Permission.PermissionDetailsSc
 import com.privacyshield.android.Component.Screen.UsageStatsScreen.AppUsageDetailsScreen
 import com.privacyshield.android.Model.AppDetail
 import com.privacyshield.android.ui.theme.BluePrimary
+import java.io.File
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,11 +84,12 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
 
     val shouldShowBottomBar =
         currentRoute?.startsWith("permission_details") == false &&
-                currentRoute != "details" && currentRoute != "UsageDetail"
+                currentRoute != "details" && currentRoute != "UsageDetail" && currentRoute != "full_file_screen"
 
     var showAppMenu by remember { mutableStateOf(false) }
     var selectedApp by remember { mutableStateOf<AppDetail?>(null) }
     val context = LocalContext.current
+
 
     // Dialog states
     var showDataUsageDialog by remember { mutableStateOf(false) }
@@ -91,6 +97,12 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
     var showStorageUsageDialog by remember { mutableStateOf(false) }
     var showPermissionsDialog by remember { mutableStateOf(false) }
     var storageUsage by remember { mutableStateOf<StorageUsage?>(null) }
+    // ✅ Sort option state yahin maintain karenge
+    var sortOption by remember { mutableStateOf("Name") }
+    var expanded by remember { mutableStateOf(false) }
+
+
+
     // Inside NavHost composable("details") { ... }
     val app = navController.previousBackStackEntry
         ?.savedStateHandle
@@ -147,127 +159,235 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
 
 
     Scaffold(
+
         topBar = {
-            when {
-                currentRoute == "details" -> {
-                    TopAppBar(
-                        title = { Text("App Details", color = Color.White) },
-                        navigationIcon = {
-                            IconButton(onClick = { navController.popBackStack() }) {
-                                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                            }
-                        },
-                        actions = {
-
-
-                            IconButton(onClick = {
-                                // App ko navController ke savedStateHandle me bhej do
-                                navController.currentBackStackEntry?.savedStateHandle?.set("selectedApp", app)
-                                navController.navigate("UsageDetail")
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Default.Analytics,
-                                    contentDescription = "Insights",
-                                    tint = Color.White
-                                )
-
-                            }
-
-                            IconButton(onClick = {
-                                try {
-                                    val intent = Intent("android.intent.action.MANAGE_APP_PERMISSIONS").apply {
-                                        data = Uri.fromParts("package", app?.packageName, null)
-                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                    }
-                                    context.startActivity(intent)
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                    val fallbackIntent =
-                                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                            data = Uri.parse("package:${app?.packageName}")
-                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                        }
-                                    context.startActivity(fallbackIntent)
+                when {
+                    currentRoute == "details" -> {
+                        TopAppBar(
+                            title = { Text("App Details", color = Color.White) },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(
+                                        Icons.Default.ArrowBack,
+                                        contentDescription = "Back",
+                                        tint = Color.White
+                                    )
                                 }
-                            }) {
-                                Icon(Icons.Default.Info, contentDescription = "Settings", tint = Color.White)
-                            }
-                            selectedApp?.let { app ->
-                                AppMoreMenu(
-                                    app = app,
-                                    onAction = { clickedApp, action ->
-                                        when (action) {
-                                            "data_usage" -> showDataUsageDialog = true
-                                            "battery_usage" -> showBatteryUsageDialog = true
-                                            "storage_usage" -> showStorageUsageDialog = true
-                                            "permissions" -> showPermissionsDialog = true
-                                            "open_by_default" -> manageOpenByDefault(context, clickedApp)
-                                            "open" -> openApp(context, clickedApp)
-                                            "uninstall" -> uninstallApp(activity, clickedApp)
-                                            "share" -> shareApp(context, clickedApp)
-                                        }
+                            },
+                            actions = {
+
+
+                                IconButton(onClick = {
+                                    // App ko navController ke savedStateHandle me bhej do
+                                    navController.currentBackStackEntry?.savedStateHandle?.set(
+                                        "selectedApp",
+                                        app
+                                    )
+                                    navController.navigate("UsageDetail")
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Analytics,
+                                        contentDescription = "Insights",
+                                        tint = Color.White
+                                    )
+
+                                }
+
+                                IconButton(onClick = {
+                                    try {
+                                        val intent =
+                                            Intent("android.intent.action.MANAGE_APP_PERMISSIONS").apply {
+                                                data =
+                                                    Uri.fromParts("package", app?.packageName, null)
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            }
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                        val fallbackIntent =
+                                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                                data = Uri.parse("package:${app?.packageName}")
+                                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                            }
+                                        context.startActivity(fallbackIntent)
                                     }
+                                }) {
+                                    Icon(
+                                        Icons.Default.Info,
+                                        contentDescription = "Settings",
+                                        tint = Color.White
+                                    )
+                                }
+                                selectedApp?.let { app ->
+                                    AppMoreMenu(
+                                        app = app,
+                                        onAction = { clickedApp, action ->
+                                            when (action) {
+                                                "data_usage" -> showDataUsageDialog = true
+                                                "battery_usage" -> showBatteryUsageDialog = true
+                                                "storage_usage" -> showStorageUsageDialog = true
+                                                "permissions" -> showPermissionsDialog = true
+                                                "open_by_default" -> manageOpenByDefault(context, clickedApp)
+                                                "open" -> openApp(context, clickedApp)
+                                                "uninstall" -> uninstallApp(activity, clickedApp)
+                                                "share" -> shareApp(context, clickedApp)
+                                            }
+                                        }
+                                    )
+                                }
+
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = Color(
+                                    0xFF1E1E1E
                                 )
-                            }
+                            )
+                        )
+                    }
 
-                        }
-                        ,
-                        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E1E1E))
-                    )
-                }
 
-                currentRoute?.startsWith("permission_details") == true -> {
-                    TopAppBar(
-                        title = { Text("Permission Details", color = Color.White) },
-                        navigationIcon = {
-                            IconButton(onClick = { navController.popBackStack() }) {
-                                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E1E1E))
-                    )
-                }
-                currentRoute == "overview" -> {
-                    TopAppBar(
-                        title = { Text("Device Info", color = Color.White) },
-                        actions = {
-                            IconButton(onClick = {
-                                navController.navigate("settings")
-                            }) {
-                                Icon(Icons.Default.Settings, contentDescription = "Settings", tint = Color.White)
-                            }
+                    currentRoute == "full_file_screen" -> {
+                        var expanded by remember { mutableStateOf(false) }
+                        var sortOption by remember { mutableStateOf("Name") }
 
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E1E1E))
-                    )
-                }
+                        TopAppBar(
+                            title = { Text("Files", color = Color.White) },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(
+                                        Icons.Default.ArrowBack,
+                                        contentDescription = "Back",
+                                        tint = Color.White
+                                    )
+                                }
+                            },
+                            actions = {
+                                IconButton(onClick = { expanded = true }) {
+                                    Icon(Icons.Default.Sort, contentDescription = "Sort", tint = Color.White)
+                                }
 
-                currentRoute?.startsWith("UsageDetail") == true ->{
-                    TopAppBar(
-                        title = { Text("${app?.appName} Insights", color = Color.White) },
-                        actions = {
-                            IconButton(onClick = {
-                                val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                                intent.data = Uri.parse("package:${app?.packageName}") // yahan app ka package name
-                                context.startActivity(intent)
+                                DropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Name") },
+                                        onClick = {
+                                            sortOption = "Name"
+                                            expanded = false
+                                            navController.currentBackStackEntry
+                                                ?.savedStateHandle
+                                                ?.set("sortOption", sortOption)
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Date") },
+                                        onClick = {
+                                            sortOption = "Date"
+                                            expanded = false
+                                            navController.currentBackStackEntry
+                                                ?.savedStateHandle
+                                                ?.set("sortOption", sortOption)
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Size") },
+                                        onClick = {
+                                            sortOption = "Size"
+                                            expanded = false
+                                            navController.currentBackStackEntry
+                                                ?.savedStateHandle
+                                                ?.set("sortOption", sortOption)
+                                        }
+                                    )
+                                }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = Color(0xFF1E1E1E)
+                            )
+                        )
+                    }
 
-                            }) {
-                                Icon(
-                                    imageVector =Icons.Default.Settings,
-                                    contentDescription = "settings",
-                                    tint = Color.White
+                    currentRoute?.startsWith("permission_details") == true -> {
+                        TopAppBar(
+                            title = { Text("Permission Details", color = Color.White) },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(
+                                        Icons.Default.ArrowBack,
+                                        contentDescription = "Back",
+                                        tint = Color.White
+                                    )
+                                }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = Color(
+                                    0xFF1E1E1E
                                 )
+                            )
+                        )
+                    }
 
-                            }
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = { navController.popBackStack() }) {
-                                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E1E1E))
-                    )
-                }
+                    currentRoute == "overview" -> {
+                        TopAppBar(
+                            title = { Text("Device Info", color = Color.White) },
+                            actions = {
+                                IconButton(onClick = {
+                                    navController.navigate("settings")
+                                }) {
+                                    Icon(
+                                        Icons.Default.Settings,
+                                        contentDescription = "Settings",
+                                        tint = Color.White
+                                    )
+                                }
+
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = Color(
+                                    0xFF1E1E1E
+                                )
+                            )
+                        )
+                    }
+
+                    currentRoute?.startsWith("UsageDetail") == true -> {
+                        TopAppBar(
+                            title = { Text("${app?.appName} Insights", color = Color.White) },
+                            actions = {
+                                IconButton(onClick = {
+                                    val intent =
+                                        Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                                    intent.data =
+                                        Uri.parse("package:${app?.packageName}") // yahan app ka package name
+                                    context.startActivity(intent)
+
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Settings,
+                                        contentDescription = "settings",
+                                        tint = Color.White
+                                    )
+
+                                }
+                            },
+                            navigationIcon = {
+                                IconButton(onClick = { navController.popBackStack() }) {
+                                    Icon(
+                                        Icons.Default.ArrowBack,
+                                        contentDescription = "Back",
+                                        tint = Color.White
+                                    )
+                                }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = Color(
+                                    0xFF1E1E1E
+                                )
+                            )
+                        )
+                    }
+
 
             }
         },
@@ -325,11 +445,51 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                 )
             }
 
-            // Overview
-            composable(BottomNavItem.Overview.route.route) { OverviewScreen() }
+
+
+            composable("full_file_screen") {
+                val files = navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.get<List<File>>("files") ?: emptyList()
+
+                val type = navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.get<String>("type") ?: "unknown"
+
+                // Saved sort option navController me se lo
+                val sortOption = navController.currentBackStackEntry
+                    ?.savedStateHandle
+                    ?.get<String>("sortOption") ?: "Name"
+
+                // ✅ Apply sorting yahin par
+                val sortedFiles = remember(sortOption, files) {
+                    when (sortOption) {
+                        "Name" -> files.sortedBy { it.name.lowercase() }
+                        "Date" -> files.sortedByDescending { it.lastModified() }
+                        "Size" -> files.sortedByDescending { it.length() }
+                        else -> files
+                    }
+                }
+
+                val title = when (type) {
+                    "image" -> "Images"
+                    "video" -> "Videos"
+                    "document" -> "Documents"
+                    "sticker" -> "Stickers"
+                    else -> "Files"
+                }
+
+                FileDetailScreen(
+                    title = title,
+                    files = sortedFiles,   // ✅ sorted list bhej do
+                    type = type,
+                    onBack = { navController.popBackStack() }
+                )
+            }
 
             // Overview
-            composable(BottomNavItem.Scanner.route.route) { ScannerScreen() }
+            composable(BottomNavItem.Overview.route.route) { OverviewScreen() }
+            composable(BottomNavItem.Scanner.route.route) { ScannerScreen(navController) }
 
             composable(BottomNavItem.MemoryManager.route.route) { MemoryManagerScreen() }
 

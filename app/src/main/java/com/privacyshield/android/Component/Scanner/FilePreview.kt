@@ -3,6 +3,7 @@ package com.privacyshield.android.Component.Scanner
 import android.media.ThumbnailUtils
 import android.provider.MediaStore
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -34,23 +35,20 @@ import coil.compose.AsyncImage
 import java.io.File
 
 @Composable
-fun FilePreview(file: File, type: String) {
+fun FilePreview(file: File, type: String, onClick: (File) -> Unit) {
     Column(
         modifier = Modifier
             .padding(6.dp)
-            .width(90.dp),
+            .width(90.dp)
+            .clickable { onClick(file) }, // 🔹 click handling
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Card(
-            modifier = Modifier
-                .size(80.dp),
+            modifier = Modifier.size(80.dp),
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF2A2A2A))
         ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 when (type) {
                     "image", "sticker" -> {
                         AsyncImage(
@@ -61,7 +59,6 @@ fun FilePreview(file: File, type: String) {
                         )
                     }
                     "video" -> {
-                        val context = LocalContext.current
                         val thumbnail = remember {
                             ThumbnailUtils.createVideoThumbnail(
                                 file.toString(),

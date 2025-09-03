@@ -55,6 +55,7 @@ dependencies {
     implementation(libs.androidx.palette.ktx)
     implementation(libs.generativeai)
     implementation(libs.material)
+    implementation(libs.androidx.foundation.layout.android)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

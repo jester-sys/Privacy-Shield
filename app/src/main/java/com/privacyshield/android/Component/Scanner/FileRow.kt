@@ -1,5 +1,6 @@
 package com.privacyshield.android.Component.Scanner
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -24,7 +25,7 @@ import androidx.compose.ui.unit.sp
 import java.io.File
 
 @Composable
-fun FileRow(title: String, files: List<File>, type: String) {
+fun FileRow(title: String, files: List<File>, type: String, onItemClick: (List<File>, String) -> Unit) {
     Column {
         Text(title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium)
         Spacer(modifier = Modifier.height(6.dp))
@@ -33,7 +34,10 @@ fun FileRow(title: String, files: List<File>, type: String) {
             val maxItems = 5
             val limited = files.take(maxItems)
             items(limited) { file ->
-                FilePreview(file, type)
+                FilePreview(file, type) {
+                    // 🔹 Jab user kisi item pe click kare -> full screen open
+                    onItemClick(files, type)
+                }
             }
 
             if (files.size > maxItems) {
@@ -41,14 +45,12 @@ fun FileRow(title: String, files: List<File>, type: String) {
                     Card(
                         modifier = Modifier
                             .size(80.dp)
-                            .padding(6.dp),
+                            .padding(6.dp)
+                            .clickable { onItemClick(files, type) },
                         shape = RoundedCornerShape(12.dp),
                         colors = CardDefaults.cardColors(containerColor = Color(0xFF2A2A2A))
                     ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
                                 "+${files.size - maxItems} more",
                                 color = Color.White,
@@ -63,3 +65,4 @@ fun FileRow(title: String, files: List<File>, type: String) {
         }
     }
 }
+
