@@ -350,7 +350,7 @@ fun QuickScanButton(onClick: () -> Unit) {
             )
         }
     }
-}
+   }
 
 
 @Composable
