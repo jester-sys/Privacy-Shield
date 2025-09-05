@@ -13,10 +13,14 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.StickyNote2
 import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.privacyshield.android.Component.Scanner.fetchFilesFromPossibleFolders
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,6 +37,35 @@ class WhatsAppCleanerViewModel @Inject constructor(
     application: Application
 ) : AndroidViewModel(application) {
 
+    // Images
+    var images by mutableStateOf<List<File>>(emptyList())
+        private set
+
+    // Videos
+    var videos by mutableStateOf<List<File>>(emptyList())
+        private set
+
+    // Documents
+    var documents by mutableStateOf<List<File>>(emptyList())
+        private set
+
+    // Stickers
+    var stickers by mutableStateOf<List<File>>(emptyList())
+        private set
+
+    // Voice Notes / Audio
+    var voiceNotes by mutableStateOf<List<File>>(emptyList())
+        private set
+
+    // GIFs
+    var gifsFiles by mutableStateOf<List<File>>(emptyList())
+        private set
+
+    // Statuses (images/videos)
+    var statusFiles by mutableStateOf<List<File>>(emptyList())
+        private set
+
+
     private val context = application.applicationContext
 
     private val _totalSize = MutableStateFlow(0L)
@@ -45,7 +78,10 @@ class WhatsAppCleanerViewModel @Inject constructor(
     val categories: StateFlow<List<FileCategory>> = _categories
 
     private val _isLoading = MutableStateFlow(true)
-    val isLoading: StateFlow<Boolean> = _isLoading
+    var isLoading: StateFlow<Boolean> = _isLoading
+
+    var isLoad by mutableStateOf(false)
+        private set
 
     private var fileObserver: FileObserver? = null
     private val _cleanProgress = MutableStateFlow(0)
@@ -211,4 +247,57 @@ class WhatsAppCleanerViewModel @Inject constructor(
         super.onCleared()
         fileObserver?.stopWatching()
     }
+    fun loadWhatsAppData(base: String) {
+        isLoad = true
+        viewModelScope.launch(Dispatchers.IO) {
+
+            val img = fetchFilesFromPossibleFolders(
+                listOf("$base/WhatsApp Images", "$base/WhatsApp Image"),
+                listOf(".jpg", ".jpeg", ".png", ".webp")
+            )
+
+            val vid = fetchFilesFromPossibleFolders(
+                listOf("$base/WhatsApp Video", "$base/WhatsApp Videos"),
+                listOf(".mp4", ".3gp", ".mkv", ".avi")
+            )
+
+            val docs = fetchFilesFromPossibleFolders(
+                listOf("$base/WhatsApp Documents", "$base/WhatsApp Document"),
+                listOf(".pdf", ".docx", ".doc", ".pptx", ".ppt", ".xls", ".xlsx", ".txt")
+            )
+
+            val stick = fetchFilesFromPossibleFolders(
+                listOf("$base/WhatsApp Stickers", "$base/WhatsApp Sticker"),
+                listOf(".webp")
+            )
+
+            val voice = fetchFilesFromPossibleFolders(
+                listOf("$base/WhatsApp Voice Notes", "$base/WhatsApp Audio"),
+                listOf(".m4a", ".mp3", ".aac", ".opus")
+            )
+
+            val gifs = fetchFilesFromPossibleFolders(
+                listOf("$base/WhatsApp Animated Gifs", "$base/WhatsApp GIF"),
+                listOf(".gif")
+            )
+
+            val statuses = fetchFilesFromPossibleFolders(
+                listOf("$base/.Statuses"),
+                listOf(".jpg", ".jpeg", ".png", ".mp4")
+            )
+
+            withContext(Dispatchers.Main) {
+                images = img
+                videos = vid
+                documents = docs
+                stickers = stick
+                voiceNotes = voice
+                gifsFiles = gifs
+                statusFiles = statuses
+                isLoad = false
+            }
+        }
+    }
+
 }
+

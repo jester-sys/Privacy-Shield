@@ -1,51 +1,42 @@
 package com.privacyshield.android.Component.Scanner.Whatsapp
 
+import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.Settings
+import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -57,7 +48,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
@@ -66,16 +56,20 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import androidx.core.app.ActivityCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
+import com.privacyshield.android.Component.Scanner.FileRow
+import com.privacyshield.android.Component.Scanner.getWhatsAppBasePath
 import com.privacyshield.android.R
 import kotlinx.coroutines.delay
+import java.io.File
 
 @Composable
 fun CleanWhatsAppMediaScreen(
+    navController: NavController,
     viewModel: WhatsAppCleanerViewModel = hiltViewModel()
 ) {
     val totalSize by viewModel.totalSize.collectAsState()
@@ -89,10 +83,35 @@ fun CleanWhatsAppMediaScreen(
     val selectedCategories = remember { mutableStateListOf<String>() }
     // ✅ Clean Button with auto shrink/expand
     var expanded by remember { mutableStateOf(false) }
+    var hasRequestedPermissions by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val base = getWhatsAppBasePath()
 
-// 🔄 Button expand/shrink toggle (jaise scroll ya delay pe)
     LaunchedEffect(Unit) {
-        delay(2000) // 2 sec baad expand hoga (scroll event bhi use kar sakte ho)
+        if (!hasRequestedPermissions) {
+            // Permissions
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
+                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                intent.data = Uri.parse("package:${context.packageName}")
+                context.startActivity(intent)
+            } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                ActivityCompat.requestPermissions(
+                    context as Activity,
+                    arrayOf(
+                        Manifest.permission.READ_EXTERNAL_STORAGE,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    ),
+                    100
+                )
+            }
+
+            viewModel.loadWhatsAppData(base)
+            hasRequestedPermissions = true
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        delay(2000)
         expanded = true
     }
 
@@ -129,8 +148,19 @@ fun CleanWhatsAppMediaScreen(
                     modifier = Modifier.weight(1f)
                 ) {
                     items(categories) { category ->
-                        CategoryCard(category)
+                        CategoryCard(
+                            category = category,
+                            navController = navController,
+                            viewModel = viewModel,
+                            onClick = { files, type ->
+                                navController.currentBackStackEntry?.savedStateHandle?.set("files", files)
+                                navController.currentBackStackEntry?.savedStateHandle?.set("type", type)
+                                navController.navigate("full_file_screen")
+                            }
+
+                        )
                     }
+
                 }
             }
         }
@@ -202,7 +232,12 @@ fun CleanWhatsAppMediaScreen(
 
 
 @Composable
-fun CategoryCard(category: FileCategory) {
+fun CategoryCard(
+    category: FileCategory,
+    navController: NavController,
+    viewModel: WhatsAppCleanerViewModel,
+    onClick: (List<File>, String) -> Unit
+) {
     val name = category.name.lowercase()
     val categoryColor = when {
         "image" in name -> Color(0xFF42A5F5)   // Blue
@@ -212,7 +247,19 @@ fun CategoryCard(category: FileCategory) {
         "audio" in name || "voice" in name -> Color(0xFFAB47BC) // Purple
         "gif" in name -> Color(0xFF26C6DA)      // Cyan
         "sticker" in name -> Color(0xFFFF7043) // Orange
-        else -> Color(0xFF2A2A2A)              // Default
+        else -> Color(0xFF2A2A2A)
+    }
+
+    val type = when {
+        "image" in name -> "image"
+        "video" in name -> "video"
+        "document" in name -> "document"
+        "status" in name -> "status"
+        "audio" in name || "voice" in name -> "audio"
+        "gif" in name -> "gif"
+        "sticker" in name -> "sticker"
+        else -> "other"
+
     }
 
     Box(
@@ -220,15 +267,26 @@ fun CategoryCard(category: FileCategory) {
             .fillMaxWidth()
             .height(100.dp)
             .padding(4.dp)
-    ) {
-        // Draw background using Canvas
-        Canvas(modifier = Modifier.matchParentSize()) {
-            drawRoundRect(
-                color = categoryColor.copy(alpha = 0.12f), // subtle background
-                cornerRadius = CornerRadius(12.dp.toPx(), 12.dp.toPx())
-            )
-        }
+            .clip(RoundedCornerShape(12.dp))
+            .background(categoryColor.copy(alpha = 0.12f))
+            .clickable {
+                val files = when (type) {
+                    "image" -> viewModel.images
+                    "video" -> viewModel.videos
+                    "document" -> viewModel.documents
+                    "status" -> viewModel.statusFiles
+                    "voice" -> viewModel.voiceNotes
+                    "gif" -> viewModel.gifsFiles
+                    "sticker" -> viewModel.stickers
+                    else -> emptyList()
+                }
 
+
+                Log.d("CleanWhatsAppMediaScreen", "Files: $files, Type: $type, Files size: ${files.size}")
+                onClick(files, type)
+
+            }
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(12.dp)
@@ -243,7 +301,12 @@ fun CategoryCard(category: FileCategory) {
             Spacer(Modifier.width(12.dp))
 
             Column {
-                Text(category.name, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    category.name,
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
                 Text(formatSize(category.size), color = Color(0xFFB0BEC5), fontSize = 13.sp)
                 Text("${category.fileCount} files", color = Color(0xFF78909C), fontSize = 11.sp)
             }

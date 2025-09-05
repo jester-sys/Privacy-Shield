@@ -268,10 +268,11 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                             "video" -> "Videos"
                             "document" -> "Documents"
                             "sticker" -> "Stickers"
+                            "audio" -> "Voice Notes"
+                            "gif" -> "GIFs"
+                            "status" -> "Status"
                             else -> "Files"
                         }
-
-
                         TopAppBar(
                             title = { Text(title, color = Color.White) },
                             navigationIcon = {
@@ -527,13 +528,18 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                     }
                 }
 
-                val title = when (type) {
+                val title = when (type.lowercase()) {
                     "image" -> "Images"
                     "video" -> "Videos"
                     "document" -> "Documents"
                     "sticker" -> "Stickers"
+                    "audio" -> "Voice Notes"
+                    "gif" -> "GIFs"
+                    "status" -> "Status"
                     else -> "Files"
                 }
+
+
 
                 FileDetailScreen(
                     title = title,
@@ -574,7 +580,7 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
 
             composable("clean_whatsapp_media") {
 
-                    CleanWhatsAppMediaScreen()
+                    CleanWhatsAppMediaScreen(navController)
             }
 
             composable("UsageDetail") {

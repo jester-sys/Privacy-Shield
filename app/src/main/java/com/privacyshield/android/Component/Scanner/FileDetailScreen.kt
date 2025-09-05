@@ -7,6 +7,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.media.ThumbnailUtils
+import android.util.Log
 import android.util.Size
 import android.webkit.MimeTypeMap
 import android.widget.Toast
@@ -63,7 +64,6 @@ import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import coil.request.videoFrameMillis
 import com.privacyshield.android.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -82,6 +82,13 @@ fun FileDetailScreen(
     gridColumns: Dp
 ) {
     val context = LocalContext.current
+    // 🔹 Debug logs
+    LaunchedEffect(files) {
+        Log.d("FileDetailScreen", "Title: $title, Type: $type, Files size: ${files.size}")
+        files.forEach {
+            Log.d("FileDetailScreen", "File: ${it.absolutePath}")
+        }
+    }
     var selectionMode by remember { mutableStateOf(false) }
     val selectedFiles = remember { mutableStateListOf<File>() }
     val gridState = rememberLazyGridState()

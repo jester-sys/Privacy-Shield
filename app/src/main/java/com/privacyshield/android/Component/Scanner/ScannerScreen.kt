@@ -94,7 +94,7 @@ fun ScannerScreen(
 
     var hasRequestedPermissions by remember { mutableStateOf(false) }
 
-    var isExpanded by rememberSaveable { mutableStateOf(false) }
+    var isExpanded by rememberSaveable { mutableStateOf(true) }
 
 
     LaunchedEffect(Unit) {
@@ -182,7 +182,7 @@ fun ScannerScreen(
                                 color = Color.White
                             )
                             Text(
-                                "Used: ${formatSize(viewModel.totalSize)}",
+                                "Clear out media you no longer need.",
                                 fontSize = 12.sp,
                                 color = Color(0xFFB0BEC5)
                             )
@@ -216,8 +216,6 @@ fun ScannerScreen(
                         }
                     } else {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-
-
                             FileRow("Images", viewModel.images, "image") { files, type ->
                                 navController.currentBackStackEntry?.savedStateHandle?.set(
                                     "files",
@@ -281,13 +279,6 @@ fun ScannerScreen(
                 ) {
                     Button(
                         onClick = {
-                            navController.currentBackStackEntry?.savedStateHandle?.set("totalSize", viewModel.totalSize)
-                         //   navController.currentBackStackEntry?.savedStateHandle?.set("totalFiles", viewModel.totalFiles)
-                            navController.currentBackStackEntry?.savedStateHandle?.set("images", viewModel.images)
-                            navController.currentBackStackEntry?.savedStateHandle?.set("videos", viewModel.videos)
-                            navController.currentBackStackEntry?.savedStateHandle?.set("documents", viewModel.documents)
-                            navController.currentBackStackEntry?.savedStateHandle?.set("stickers", viewModel.stickers)
-
                             navController.navigate("clean_whatsapp_media")
                         },
                         modifier = Modifier
