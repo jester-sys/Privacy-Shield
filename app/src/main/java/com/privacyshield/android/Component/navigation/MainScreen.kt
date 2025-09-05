@@ -4,14 +4,20 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sort
+import androidx.compose.material.icons.filled.SortByAlpha
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.ViewAgenda
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,16 +33,17 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat.startActivity
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -46,8 +53,9 @@ import androidx.navigation.navArgument
 import com.privacyshield.android.Component.MemoryManager.MemoryManagerScreen
 import com.privacyshield.android.Component.Scanner.FileDetailScreen
 import com.privacyshield.android.Component.Scanner.ScannerScreen
+import com.privacyshield.android.Component.Scanner.Whatsapp.CleanWhatsAppMediaScreen
+import com.privacyshield.android.Component.Scanner.Whatsapp.WhatsAppCleanerViewModel
 import com.privacyshield.android.Component.Screen.Deatils.DetailsScreen
-import com.privacyshield.android.Component.Screen.Deatils.PermissionSection
 import com.privacyshield.android.Component.Screen.Deatils.utility.AppMoreMenu
 import com.privacyshield.android.Component.Screen.Home.Action.AppDataUsageCard
 import com.privacyshield.android.Component.Screen.Home.Action.ManagePermissions
@@ -59,7 +67,6 @@ import com.privacyshield.android.Component.Screen.Home.Action.showBatteryUsage
 import com.privacyshield.android.Component.Screen.Home.Action.showStorageUsage
 import com.privacyshield.android.Component.Screen.Home.Action.uninstallApp
 import com.privacyshield.android.Component.Screen.Home.HomeScreen
-import com.privacyshield.android.Component.Screen.Home.utility.AppActionPopupMenu
 import com.privacyshield.android.Component.Screen.Model.StorageUsage
 import com.privacyshield.android.Component.Screen.Overview.OverviewScreen
 import com.privacyshield.android.Component.Screen.Permission.PermissionDetailsScreen
@@ -100,13 +107,18 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
     // ✅ Sort option state yahin maintain karenge
     var sortOption by remember { mutableStateOf("Name") }
     var expanded by remember { mutableStateOf(false) }
-
+    var gridColumns by remember { mutableStateOf(120.dp) } // initial screen ke hisaab se
+    var gridIcon by remember { mutableStateOf(
+        if (120.dp == 120.dp) Icons.Default.GridView else Icons.Default.ViewAgenda
+    )}
 
 
     // Inside NavHost composable("details") { ... }
     val app = navController.previousBackStackEntry
         ?.savedStateHandle
         ?.get<AppDetail>("selectedApp")
+
+
 
 // Assign app to MainScreen state for bottom sheet
     LaunchedEffect(app) {
@@ -247,12 +259,24 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
 
 
                     currentRoute == "full_file_screen" -> {
-                        var expanded by remember { mutableStateOf(false) }
-                        var sortOption by remember { mutableStateOf("Name") }
+                        val type = navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.get<String>("type") ?: "unknown"
+
+                        val title = when (type) {
+                            "image" -> "Images"
+                            "video" -> "Videos"
+                            "document" -> "Documents"
+                            "sticker" -> "Stickers"
+                            else -> "Files"
+                        }
+
 
                         TopAppBar(
-                            title = { Text("Files", color = Color.White) },
+                            title = { Text(title, color = Color.White) },
                             navigationIcon = {
+
+
                                 IconButton(onClick = { navController.popBackStack() }) {
                                     Icon(
                                         Icons.Default.ArrowBack,
@@ -262,45 +286,88 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                                 }
                             },
                             actions = {
+                                IconButton(onClick = {
+                                    // Toggle logic
+                                    if (gridColumns == 120.dp) {
+                                        gridColumns = 150.dp
+                                        gridIcon = Icons.Default.ViewAgenda
+                                    } else {
+                                        gridColumns = 120.dp // screen ke hisaab se reset
+                                        gridIcon = if (120.dp == 120.dp) Icons.Default.GridView else Icons.Default.ViewAgenda
+                                    }
+                                }) {
+                                    Icon(imageVector = gridIcon, contentDescription = "Toggle Grid")
+                                }
+
                                 IconButton(onClick = { expanded = true }) {
-                                    Icon(Icons.Default.Sort, contentDescription = "Sort", tint = Color.White)
+                                    Icon(
+                                        imageVector = Icons.Default.Sort,
+                                        contentDescription = "Sort",
+                                        tint = Color.White
+                                    )
                                 }
 
                                 DropdownMenu(
                                     expanded = expanded,
-                                    onDismissRequest = { expanded = false }
-                                ) {
+                                    onDismissRequest = { expanded = false },
+                                    modifier = Modifier
+                                        .shadow(4.dp, RoundedCornerShape(16.dp)) // thoda shadow premium look ke liye
+                                        .background(
+                                            color = Color(0xFF3A3A3A), // 👈 theme se background
+                                            shape = RoundedCornerShape(16.dp)         // 👈 round corners
+                                        )
+                                ){
                                     DropdownMenuItem(
                                         text = { Text("Name") },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.SortByAlpha,
+                                                contentDescription = null,
+                                                tint = Color(0xFF2196F3) // 👈 blue tint for style
+                                            )
+                                        },
                                         onClick = {
-                                            sortOption = "Name"
                                             expanded = false
                                             navController.currentBackStackEntry
                                                 ?.savedStateHandle
-                                                ?.set("sortOption", sortOption)
+                                                ?.set("sortOption", "Name")
                                         }
                                     )
                                     DropdownMenuItem(
                                         text = { Text("Date") },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.DateRange,
+                                                contentDescription = null,
+                                                tint = Color(0xFF4CAF50) // 👈 green tint
+                                            )
+                                        },
                                         onClick = {
-                                            sortOption = "Date"
                                             expanded = false
                                             navController.currentBackStackEntry
                                                 ?.savedStateHandle
-                                                ?.set("sortOption", sortOption)
+                                                ?.set("sortOption", "Date")
                                         }
                                     )
                                     DropdownMenuItem(
                                         text = { Text("Size") },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.Storage,
+                                                contentDescription = null,
+                                                tint = Color(0xFFFF9800) // 👈 orange tint
+                                            )
+                                        },
                                         onClick = {
-                                            sortOption = "Size"
                                             expanded = false
                                             navController.currentBackStackEntry
                                                 ?.savedStateHandle
-                                                ?.set("sortOption", sortOption)
+                                                ?.set("sortOption", "Size")
                                         }
                                     )
                                 }
+
+
                             },
                             colors = TopAppBarDefaults.topAppBarColors(
                                 containerColor = Color(0xFF1E1E1E)
@@ -433,18 +500,6 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
             startDestination = BottomNavItem.Home.route.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            // Home
-            composable(BottomNavItem.Home.route.route) {
-                HomeScreen(
-                    activity = activity,
-                    onAppClick = { app, allApps ->
-                        navController.currentBackStackEntry?.savedStateHandle?.set("selectedApp", app)
-                        navController.currentBackStackEntry?.savedStateHandle?.set("allApps", allApps)
-                        navController.navigate("details")
-                    }
-                )
-            }
-
 
 
             composable("full_file_screen") {
@@ -456,12 +511,13 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                     ?.savedStateHandle
                     ?.get<String>("type") ?: "unknown"
 
-                // Saved sort option navController me se lo
-                val sortOption = navController.currentBackStackEntry
+                // ✅ Observe sortOption as StateFlow
+                val sortOption by navController.currentBackStackEntry
                     ?.savedStateHandle
-                    ?.get<String>("sortOption") ?: "Name"
+                    ?.getStateFlow("sortOption", "Name")
+                    ?.collectAsState() ?: remember { mutableStateOf("Name") }
 
-                // ✅ Apply sorting yahin par
+                // ✅ Sorted list will recompute whenever sortOption or files change
                 val sortedFiles = remember(sortOption, files) {
                     when (sortOption) {
                         "Name" -> files.sortedBy { it.name.lowercase() }
@@ -481,11 +537,29 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
 
                 FileDetailScreen(
                     title = title,
-                    files = sortedFiles,   // ✅ sorted list bhej do
+                    files = sortedFiles,
+                    gridColumns = gridColumns,
                     type = type,
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    navController = navController
                 )
             }
+
+
+            // Home
+            composable(BottomNavItem.Home.route.route) {
+                HomeScreen(
+                    activity = activity,
+                    onAppClick = { app, allApps ->
+                        navController.currentBackStackEntry?.savedStateHandle?.set("selectedApp", app)
+                        navController.currentBackStackEntry?.savedStateHandle?.set("allApps", allApps)
+                        navController.navigate("details")
+                    }
+                )
+            }
+
+
+
 
             // Overview
             composable(BottomNavItem.Overview.route.route) { OverviewScreen() }
@@ -497,6 +571,11 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
           //  composable(BottomNavItem.Permission.route.route) { PermissionScreen() }
 
             // App Details
+
+            composable("clean_whatsapp_media") {
+
+                    CleanWhatsAppMediaScreen()
+            }
 
             composable("UsageDetail") {
                 val app = navController.previousBackStackEntry?.savedStateHandle?.get<AppDetail>("selectedApp")

@@ -1,32 +1,29 @@
 package com.privacyshield.android.Component.Scanner
 
+import android.annotation.SuppressLint
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
-import android.net.Uri
+import android.media.ThumbnailUtils
+import android.util.Size
 import android.webkit.MimeTypeMap
+import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
@@ -38,55 +35,73 @@ import java.io.File
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.InsertDriveFile
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PlayCircle
-import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.request.videoFrameMillis
+import com.privacyshield.android.R
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+@SuppressLint("UnrememberedMutableState")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun FileDetailScreen(
     title: String,
     files: List<File>,
     type: String,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    navController: NavController,
+    gridColumns: Dp
 ) {
     val context = LocalContext.current
     var selectionMode by remember { mutableStateOf(false) }
     val selectedFiles = remember { mutableStateListOf<File>() }
+    val gridState = rememberLazyGridState()
 
-    // ✅ Local list state for filtering
-    var fileList by remember { mutableStateOf(files) }
+    val scope = rememberCoroutineScope()
+    val sortOption by navController.currentBackStackEntry
+        ?.savedStateHandle
+        ?.getStateFlow("sortOption", "Name")
+        ?.collectAsState() ?: remember { mutableStateOf("Name") }
 
-    // Jab bhi parent se nayi sorted files aayengi to sync karo
-    LaunchedEffect(files) {
-        fileList = files
+    // Use derivedStateOf for efficient sorting
+    val fileList by remember(files, sortOption) {
+        derivedStateOf {
+            when (sortOption) {
+                "Name" -> files.sortedBy { it.name.lowercase() }
+                "Date" -> files.sortedByDescending { it.lastModified() }
+                "Size" -> files.sortedByDescending { it.length() }
+                else -> files
+            }
+        }
     }
 
     // 🔹 Dialog states
@@ -109,7 +124,7 @@ fun FileDetailScreen(
                     ) {
                         Icon(Icons.Default.DeleteSweep, contentDescription = "Trash", tint = Color.White)
                         Spacer(Modifier.width(6.dp))
-                        Text("Move to Trash")
+                        Text("Move to Trash", color = Color.White)
                     }
 
                     Button(
@@ -118,24 +133,25 @@ fun FileDetailScreen(
                     ) {
                         Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.White)
                         Spacer(Modifier.width(6.dp))
-                        Text("Delete")
+                        Text("Delete", color = Color.White)
                     }
                 }
             }
         }
     ) { padding ->
         LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 120.dp),
+            columns = GridCells.Adaptive(minSize = gridColumns),
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .background(Color(0xFF121212)),
+            state = gridState,
             contentPadding = PaddingValues(8.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            items(fileList) { file ->
-                val isSelected = selectedFiles.contains(file)
+            items(fileList, key = { it.absolutePath }) { file ->
+                val isSelected by derivedStateOf { selectedFiles.contains(file) }
 
                 Card(
                     shape = RoundedCornerShape(12.dp),
@@ -162,7 +178,7 @@ fun FileDetailScreen(
                     elevation = CardDefaults.cardElevation(6.dp)
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        FileThumbnail(file = file, modifier = Modifier.fillMaxSize())
+                        OptimizedFileThumbnail(file = file, modifier = Modifier.fillMaxSize())
 
                         Box(
                             modifier = Modifier
@@ -204,16 +220,18 @@ fun FileDetailScreen(
             onDismissRequest = { showTrashDialog = false },
             confirmButton = {
                 TextButton(onClick = {
-                    val trashDir = File(fileList.firstOrNull()?.parentFile, "Trash")
-                    if (!trashDir.exists()) trashDir.mkdir()
-                    selectedFiles.forEach { it.renameTo(File(trashDir, it.name)) }
+                    scope.launch(Dispatchers.IO) {
+                        val trashDir = File(fileList.firstOrNull()?.parentFile, "Trash")
+                        if (!trashDir.exists()) trashDir.mkdir()
+                        selectedFiles.forEach { it.renameTo(File(trashDir, it.name)) }
 
-                    // ✅ Filter removed files
-                    fileList = fileList.filterNot { selectedFiles.contains(it) }
-
-                    selectedFiles.clear()
-                    selectionMode = false
-                    showTrashDialog = false
+                        // Clear selection in main thread
+                        withContext(Dispatchers.Main) {
+                            selectedFiles.clear()
+                            selectionMode = false
+                            showTrashDialog = false
+                        }
+                    }
                 }) {
                     Text("Yes, Move", color = Color.White)
                 }
@@ -235,14 +253,16 @@ fun FileDetailScreen(
             onDismissRequest = { showDeleteDialog = false },
             confirmButton = {
                 TextButton(onClick = {
-                    selectedFiles.forEach { it.delete() }
+                    scope.launch(Dispatchers.IO) {
+                        selectedFiles.forEach { it.delete() }
 
-                    // ✅ Filter removed files
-                    fileList = fileList.filterNot { selectedFiles.contains(it) }
-
-                    selectedFiles.clear()
-                    selectionMode = false
-                    showDeleteDialog = false
+                        // Clear selection in main thread
+                        withContext(Dispatchers.Main) {
+                            selectedFiles.clear()
+                            selectionMode = false
+                            showDeleteDialog = false
+                        }
+                    }
                 }) {
                     Text("Yes, Delete", color = Color.Red)
                 }
@@ -259,103 +279,135 @@ fun FileDetailScreen(
     }
 }
 
-fun openFile(context: Context, file: File) {
-    val uri = FileProvider.getUriForFile(
-        context,
-        context.packageName + ".provider",
-        file
-    )
-    val intent = Intent(Intent.ACTION_VIEW).apply {
-        setDataAndType(uri, getMimeType(file.absolutePath))
-        flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
-    }
-    context.startActivity(intent)
-}
-
-fun getMimeType(path: String): String {
-    val extension = MimeTypeMap.getFileExtensionFromUrl(path)
-    return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) ?: "*/*"
-}
-
-
+@SuppressLint("NewApi")
 @Composable
-fun FileThumbnail(file: File, modifier: Modifier = Modifier) {
+fun OptimizedFileThumbnail(file: File, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val mimeType = getMimeType(file.absolutePath) ?: ""
+    val mimeType = remember(file.absolutePath) { getMimeType(file.absolutePath) ?: "" }
+
+    val thumbnailModifier = modifier.size(120.dp)
 
     when {
+        // ------------------ IMAGE ------------------
         mimeType.startsWith("image") -> {
-            // 🖼 Image thumbnail
             AsyncImage(
-                model = file,
+                model = ImageRequest.Builder(context)
+                    .data(file)
+                    .size(240, 240)
+                    .diskCacheKey(file.absolutePath)   // cache on disk
+                    .memoryCacheKey(file.absolutePath) // cache in RAM
+                    .crossfade(true)
+                    .build(),
                 contentDescription = null,
-                modifier = modifier,
+                modifier = thumbnailModifier,
                 contentScale = ContentScale.Crop
             )
         }
 
+        // ------------------ VIDEO ------------------
         mimeType.startsWith("video") -> {
-            // 🎥 Video thumbnail (non-blocking)
-            val bitmap by produceState<Bitmap?>(initialValue = null, file) {
-                value = withContext(Dispatchers.IO) {
-                    var retriever: MediaMetadataRetriever? = null
-                    try {
-                        retriever = MediaMetadataRetriever()
-                        retriever.setDataSource(file.absolutePath)
-                        retriever.getFrameAtTime(1_000_000) // 1 second frame
-                    } catch (e: Exception) {
+            // Cache thumbnail per file (no recreation on scroll)
+            val bitmap by produceState<Bitmap?>(null, file.absolutePath) {
+                withContext(Dispatchers.IO) {
+                    delay(100L) // 👈 delay to smooth scroll
+                    value = ThumbnailUtils.createVideoThumbnail(
+                        file,
+                        Size(240, 240),
                         null
-                    } finally {
-                        retriever?.release()
-                    }
+                    )
                 }
             }
 
             if (bitmap != null) {
                 Image(
                     bitmap = bitmap!!.asImageBitmap(),
-                    contentDescription = null,
-                    modifier = modifier,
+                    contentDescription = "Video thumbnail",
+                    modifier = thumbnailModifier,
                     contentScale = ContentScale.Crop
                 )
             } else {
+                Box(
+                    modifier = thumbnailModifier.background(Color.Black),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.PlayArrow,
+                        contentDescription = "Video",
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
+        }
+
+        // ------------------ PDF ------------------
+        mimeType == "application/pdf" -> {
+            Box(
+                modifier = thumbnailModifier.background(Color(0xFFF5F5F5)),
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(
-                    Icons.Default.PlayCircle,
-                    contentDescription = "Video",
-                    tint = Color.White,
-                    modifier = modifier.padding(16.dp)
+                    Icons.Default.Description,
+                    contentDescription = "PDF",
+                    tint = Color(0xFFE53935),
+                    modifier = Modifier.size(32.dp)
                 )
             }
         }
 
-        mimeType == "application/pdf" -> {
-            // 📄 PDF icon
-            Icon(
-                Icons.Default.Description,
-                contentDescription = "PDF",
-                tint = Color(0xFFE53935),
-                modifier = modifier.padding(20.dp)
-            )
-        }
-
+        // ------------------ AUDIO ------------------
         mimeType.startsWith("audio") -> {
-            // 🎵 Audio icon
-            Icon(
-                Icons.Default.MusicNote,
-                contentDescription = "Audio",
-                tint = Color(0xFF29B6F6),
-                modifier = modifier.padding(20.dp)
-            )
+            Box(
+                modifier = thumbnailModifier.background(Color(0xFFE3F2FD)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.MusicNote,
+                    contentDescription = "Audio",
+                    tint = Color(0xFF29B6F6),
+                    modifier = Modifier.size(32.dp)
+                )
+            }
         }
 
+        // ------------------ OTHER ------------------
         else -> {
-            // 📂 Default file icon
-            Icon(
-                Icons.Default.InsertDriveFile,
-                contentDescription = "File",
-                tint = Color.Gray,
-                modifier = modifier.padding(20.dp)
-            )
+            Box(
+                modifier = thumbnailModifier.background(Color(0xFFFAFAFA)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.InsertDriveFile,
+                    contentDescription = "File",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
         }
     }
+}
+
+
+fun openFile(context: Context, file: File) {
+    val uri = FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.provider",
+        file
+    )
+    val intent = Intent(Intent.ACTION_VIEW).apply {
+        setDataAndType(uri, getMimeType(file.absolutePath))
+        flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
+    }
+
+    // Use try-catch to prevent crashes
+    try {
+        context.startActivity(intent)
+    } catch (e: ActivityNotFoundException) {
+        Toast.makeText(context, "No app found to open this file", Toast.LENGTH_SHORT).show()
+    }
+}
+
+fun getMimeType(path: String): String {
+    val extension = MimeTypeMap.getFileExtensionFromUrl(path)
+    return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) ?: "*/*"
 }

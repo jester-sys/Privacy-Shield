@@ -34,13 +34,20 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import java.io.File
 
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.size.Size
+import androidx.compose.ui.platform.LocalContext
+
 @Composable
 fun FilePreview(file: File, type: String, onClick: (File) -> Unit) {
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier
             .padding(6.dp)
             .width(90.dp)
-            .clickable { onClick(file) }, // 🔹 click handling
+            .clickable { onClick(file) },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Card(
@@ -52,7 +59,11 @@ fun FilePreview(file: File, type: String, onClick: (File) -> Unit) {
                 when (type) {
                     "image", "sticker" -> {
                         AsyncImage(
-                            model = file,
+                            model = ImageRequest.Builder(context)
+                                .data(file)
+                                .size(Size.ORIGINAL)
+                                .allowHardware(false) // 🔹 Ye GIF / webp ke liye zaruri hai
+                                .build(),
                             contentDescription = null,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
