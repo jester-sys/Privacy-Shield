@@ -51,10 +51,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import com.privacyshield.android.Component.MemoryManager.MemoryManagerScreen
+import com.privacyshield.android.Component.Scanner.CONTACTS.ContactCleanerScreen
 import com.privacyshield.android.Component.Scanner.FileDetailScreen
 import com.privacyshield.android.Component.Scanner.ScannerScreen
 import com.privacyshield.android.Component.Scanner.Whatsapp.CleanWhatsAppMediaScreen
 import com.privacyshield.android.Component.Scanner.Whatsapp.WhatsAppCleanerViewModel
+import com.privacyshield.android.Component.Scanner.unusgeApp.IgnoredAppsScreen
+import com.privacyshield.android.Component.Scanner.unusgeApp.UnusedAppsScreen
 import com.privacyshield.android.Component.Screen.Deatils.DetailsScreen
 import com.privacyshield.android.Component.Screen.Deatils.utility.AppMoreMenu
 import com.privacyshield.android.Component.Screen.Home.Action.AppDataUsageCard
@@ -92,6 +95,7 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
     val shouldShowBottomBar =
         currentRoute?.startsWith("permission_details") == false &&
                 currentRoute != "details" && currentRoute != "UsageDetail" && currentRoute != "full_file_screen"
+                && currentRoute!= "ignoredApps" && currentRoute!= "clean_whatsapp_media" && currentRoute != "unused_apps_screen"
 
     var showAppMenu by remember { mutableStateOf(false) }
     var selectedApp by remember { mutableStateOf<AppDetail?>(null) }
@@ -501,6 +505,10 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
             startDestination = BottomNavItem.Home.route.route,
             modifier = Modifier.padding(innerPadding)
         ) {
+            composable("unused_apps_screen"){
+                UnusedAppsScreen(navController)
+            }
+
 
 
             composable("full_file_screen") {
@@ -567,9 +575,12 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
 
 
 
+
+
             // Overview
             composable(BottomNavItem.Overview.route.route) { OverviewScreen() }
             composable(BottomNavItem.Scanner.route.route) { ScannerScreen(navController) }
+
 
             composable(BottomNavItem.MemoryManager.route.route) { MemoryManagerScreen() }
 
@@ -581,6 +592,14 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
             composable("clean_whatsapp_media") {
 
                     CleanWhatsAppMediaScreen(navController)
+            }
+
+            composable("contact_cleaner_screen") {
+                ContactCleanerScreen()
+            }
+
+            composable("ignoredApps") {
+                IgnoredAppsScreen(navController)
             }
 
             composable("UsageDetail") {

@@ -56,6 +56,7 @@ dependencies {
     implementation(libs.generativeai)
     implementation(libs.material)
     implementation(libs.androidx.foundation.layout.android)
+    implementation(libs.androidx.work.runtime.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -77,7 +78,8 @@ dependencies {
 
     implementation(platform("androidx.compose:compose-bom:2025.01.00"))
     implementation("androidx.compose.material:material-icons-extended")
-
+    implementation ("androidx.compose.material:material:1.5.0-beta01")
+    implementation ("com.google.accompanist:accompanist-swiperefresh:0.35.1-alpha")
 
 
 }

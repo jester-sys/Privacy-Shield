@@ -34,6 +34,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Contacts
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.Image
@@ -146,6 +148,8 @@ fun ScannerScreen(
             Toast.makeText(context, "Quick Scan Started", Toast.LENGTH_SHORT).show()
         })
 
+
+
         Spacer(modifier = Modifier.height(20.dp))
 
         Card(
@@ -199,7 +203,6 @@ fun ScannerScreen(
                     }
                 }
 
-                // ✅ Toggle content
                 if (isExpanded) {
 
 
@@ -283,14 +286,14 @@ fun ScannerScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp) // thoda chhota premium size
-                            .align(Alignment.BottomCenter) // 👈 niche fix kar diya
-                            .shadow(8.dp, RoundedCornerShape(20.dp)), // soft premium shadow
+                            .height(50.dp)
+                            .align(Alignment.BottomCenter)
+                            .shadow(8.dp, RoundedCornerShape(20.dp)),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF25D366), // WhatsApp green
+                            containerColor = Color(0xFF25D366),
                             contentColor = Color.White
                         ),
-                        shape = RoundedCornerShape(20.dp), // thoda aur rounded
+                        shape = RoundedCornerShape(20.dp),
                         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
                     ) {
                         Icon(
@@ -312,6 +315,21 @@ fun ScannerScreen(
                 }
             }
         }
+
+        UnusedAppsCard(
+            onClick = {
+
+                navController.navigate("unused_apps_screen")
+            },
+
+        )
+        ContactCleanerCard (
+            onClick = {
+
+                navController.navigate("contact_cleaner_screen")
+
+            },
+        )
     }
 }
 
@@ -408,4 +426,121 @@ fun getWhatsAppBasePath(): String {
 
     return if (File(newPath).exists()) newPath else oldPath
 }
+
+@Composable
+fun UnusedAppsCard(onClick: () -> Unit) {
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp)
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF2A2A2A)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .padding(18.dp)
+        ) {
+            // 🔹 Icon ke liye round background
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .background(
+                        brush = Brush.linearGradient(
+                            listOf(Color(0xFF4CAF50), Color(0xFF2E7D32))
+                        ),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.DeleteSweep,
+                    contentDescription = "Unused Apps",
+                    tint = Color.White,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column {
+                Text(
+                    text = "Unused Apps",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Find and clean apps unused for 2–6 months",
+                    color = Color(0xFFB0BEC5),
+                    fontSize = 14.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ContactCleanerCard(onClick: () -> Unit) {
+    Card(
+        shape = RoundedCornerShape(22.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp)
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF1E1E1E)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(18.dp)
+        ) {
+            // 🔹 Stylish gradient icon background
+            Box(
+                modifier = Modifier
+                    .size(55.dp)
+                    .background(
+                        brush = Brush.linearGradient(
+                            listOf(Color(0xFF42A5F5), Color(0xFF1565C0)) // Blue gradient
+                        ),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Contacts, // 👤 Contacts icon
+                    contentDescription = "Contact Cleaner",
+                    tint = Color.White,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column {
+                Text(
+                    text = "Contact Cleaner",
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Merge duplicates & remove unused contacts easily",
+                    color = Color(0xFFB0BEC5),
+                    fontSize = 14.sp
+                )
+            }
+        }
+    }
+}
+
+
 

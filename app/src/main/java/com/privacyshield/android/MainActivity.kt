@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.privacyshield.android.Component.Scanner.unusgeApp.scheduleUnusedAppsWorker
 import com.privacyshield.android.Component.navigation.AppNavGraph
 import com.privacyshield.android.ui.theme.PrivacyShieldTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -23,6 +24,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             PrivacyShieldTheme {
                 AppNavGraph(activity = this)
+                scheduleUnusedAppsWorker(this)
+
             }
         }
     }
