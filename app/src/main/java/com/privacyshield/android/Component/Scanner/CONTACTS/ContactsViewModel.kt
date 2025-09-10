@@ -2,6 +2,8 @@ package com.privacyshield.android.Component.Scanner.CONTACTS
 
 import android.content.ContentProviderOperation
 import android.content.Context
+import android.net.Uri
+import android.provider.CallLog
 import android.provider.ContactsContract
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -13,8 +15,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.BufferedReader
 import java.io.File
+import java.io.InputStream
+import java.io.InputStreamReader
 import javax.inject.Inject
+import kotlin.math.max
 
 @HiltViewModel
 class ContactsViewModel @Inject constructor(
@@ -224,17 +230,85 @@ class ContactsViewModel @Inject constructor(
 
     private fun normalizePhone(number: String?): String {
         if (number.isNullOrBlank()) return ""
-        return number.filter { it.isDigit() || it == '+' }
-            .replace("\\s+".toRegex(), "")
+        var num = number.replace("[^0-9+]".toRegex(), "") // sirf digits aur + rakho
+
+
+        if (num.startsWith("+91")) {
+            num = num.removePrefix("+91")
+        } else if (num.startsWith("91") && num.length > 10) {
+            num = num.removePrefix("91")
+        }
+        return num.trim()
     }
+    suspend fun mergeSelectedDuplicates(primaryId: String): Int = withContext(Dispatchers.IO) {
+        var mergedCount = 0
+        val resolver = context.contentResolver
+
+        val selectedIds = _selected.value
+        if (selectedIds.isEmpty()) return@withContext 0
+
+        _duplicates.value.forEach { (_, group) ->
+            val selectedGroup = group.filter { it.id in selectedIds }
+
+            if (selectedGroup.size > 1) {
+                val primary = selectedGroup.firstOrNull { it.id == primaryId } ?: selectedGroup.first()
+                val others = selectedGroup.filter { it.id != primary.id }
+
+                others.forEach { dup ->
+                    try {
+                        val ops = ArrayList<ContentProviderOperation>()
+                        val where = "${ContactsContract.RawContacts.CONTACT_ID} = ?"
+                        val args = arrayOf(dup.id)
+                        ops.add(
+                            ContentProviderOperation.newDelete(ContactsContract.RawContacts.CONTENT_URI)
+                                .withSelection(where, args)
+                                .build()
+                        )
+                        resolver.applyBatch(ContactsContract.AUTHORITY, ops)
+                        mergedCount++
+                    } catch (e: Exception) {
+                        Log.e("ContactsViewModel", "Failed to merge ${dup.id}", e)
+                    }
+                }
+            }
+        }
+
+        loadContactsAfterPermissionGranted()
+        clearSelection()
+        mergedCount
+    }
+
 
     private fun findDuplicateContacts(list: List<Contact>): Map<String, List<Contact>> {
-        val byPhone = list.flatMap { contact ->
-            contact.numbers.mapNotNull { num -> num.takeIf { it.isNotEmpty() }?.let { num to contact } }
-        }.groupBy({ it.first }, { it.second })
+        val byKey = mutableMapOf<String, MutableList<Contact>>()
 
-        return byPhone.filter { it.value.size > 1 }
+        list.forEach { contact ->
+            contact.numbers
+                .map { normalizePhone(it) }
+                .filter { it.isNotEmpty() }
+                .distinct()
+                .forEach { num ->
+                    val group = byKey.getOrPut("phone:$num") { mutableListOf() }
+                    group.add(contact)
+                }
+        }
+
+        // 🔹 2. Group by normalized name (case insensitive, trimmed)
+        list.forEach { contact ->
+            val normName = contact.name?.lowercase()?.trim()
+            if (!normName.isNullOrEmpty()) {
+                val group = byKey.getOrPut("name:$normName") { mutableListOf() }
+                group.add(contact)
+            }
+        }
+
+        // 🔹 3. Filter: keep only groups with 2+ distinct contacts
+        return byKey
+            .mapValues { (_, group) -> group.distinctBy { it.id } }
+            .filter { it.value.size > 1 }
     }
+
+
 }
 
 // ----------- EXTRA ENUM -----------

@@ -80,6 +80,13 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation ("androidx.compose.material:material:1.5.0-beta01")
     implementation ("com.google.accompanist:accompanist-swiperefresh:0.35.1-alpha")
+    // Room
+    implementation("androidx.room:room-runtime:2.6.1")
+    kapt("androidx.room:room-compiler:2.6.1")
+
+// Kotlin Extensions and Coroutines support for Room
+    implementation("androidx.room:room-ktx:2.6.1")
+
 
 
 }
