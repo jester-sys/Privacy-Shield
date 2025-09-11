@@ -144,9 +144,7 @@ fun ScannerScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        CleanerCard(onQuickScan = {
-            Toast.makeText(context, "Quick Scan Started", Toast.LENGTH_SHORT).show()
-        })
+        CleanerCard(navController)
 
 
 
@@ -363,19 +361,18 @@ fun QuickScanButton(onClick: () -> Unit) {
 
 
 @Composable
-fun CleanerCard(onQuickScan: () -> Unit) {
+fun CleanerCard(
+    navController: NavController
+) {
     val storageInfo = remember { getStorageInfo() }
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
     ) {
         Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -395,19 +392,20 @@ fun CleanerCard(onQuickScan: () -> Unit) {
 
                 Text(
                     text = "Total: ${formatSize(storageInfo.totalBytes)} | Free: ${
-                        formatSize(
-                            storageInfo.freeBytes
-                        )
+                        formatSize(storageInfo.freeBytes)
                     }",
                     fontSize = 12.sp,
                     color = Color.Gray
                 )
             }
 
-            QuickScanButton(onClick = onQuickScan)
+            QuickScanButton(
+                onClick = { navController.navigate("file_scan") }
+            )
         }
     }
 }
+
 
 // ✅ Helper function to handle both singular/plural folder names
 fun fetchFilesFromPossibleFolders(folders: List<String>, extensions: List<String>): List<File> {

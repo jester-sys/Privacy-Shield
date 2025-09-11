@@ -1,36 +1,82 @@
 package com.privacyshield.android.Component.Scanner
 
+import android.content.Context
+import android.os.Environment
+import android.provider.MediaStore
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.LinearProgressIndicator
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.Cached
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.CleanHands
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CopyAll
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.Photo
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Screenshot
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,185 +85,803 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.privacyshield.android.Component.Scanner.QuickScan.CleanerViewModel
+import com.privacyshield.android.Component.Scanner.QuickScan.ScanningState
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import java.io.File
+import java.text.DecimalFormat
+import javax.inject.Inject
 
+// Update the QuickScanResult data class to include all new categories
+data class QuickScanResult(
+    val cacheSize: Long,
+    val junkSize: Long,
+    val largeFiles: List<File>,
+    val duplicateFiles: List<File>,
+    val apkFiles: List<File>,
+    val emptyFolders: List<File>,
+    val downloadFiles: List<File>,
+    val screenshotFiles: List<File>,
+    val videoFiles: List<File>,
+    val photoFiles: List<File>
+)
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FileScanScreen(scanResults: ScanResults, onBack: () -> Unit) {
+fun FileScanScreen(
+    viewModel: CleanerViewModel = hiltViewModel()
+) {
+    val scanResult by viewModel.scanResult.collectAsState()
+    val scanProgress by viewModel.scanProgress.collectAsState()
+    val scanningState by viewModel.scanningState.collectAsState()
+
+    var selectedCategory by remember { mutableStateOf<String?>(null) }
+    var selectedFiles by remember { mutableStateOf<Set<File>>(emptySet()) }
+
+    LaunchedEffect(Unit) {
+        if (scanResult == null && scanningState == ScanningState.IDLE) {
+            viewModel.quickScan()
+        }
+    }
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Scan Results") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+            if (selectedCategory == null) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            "Smart Storage Cleaner",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color(0xFF101010)
+                    ),
+                    actions = {
+                        if (scanningState == ScanningState.COMPLETED) {
+                            IconButton(onClick = {
+                                viewModel.clearResults()
+                                selectedCategory = null
+                                selectedFiles = emptySet()
+                            }) {
+                                Icon(
+                                    Icons.Default.Refresh,
+                                    contentDescription = "Rescan",
+                                    tint = Color(0xFF4CAF50)
+                                )
+                            }
+                        }
+                    }
+                )
+            } else {
+                TopAppBar(
+                    title = {
+                        Text(
+                            selectedCategory ?: "",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color(0xFF101010)
+                    ),
+                    navigationIcon = {
+                        IconButton(
+                            onClick = { selectedCategory = null }
+                        ) {
+                            Icon(
+                                Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color.White
+                            )
+                        }
+                    }
+                )
+            }
+        },
+        containerColor = Color(0xFF121212)
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+        ) {
+            when (scanningState) {
+                ScanningState.SCANNING -> {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(
+                                progress = scanProgress / 100f,
+                                modifier = Modifier.size(180.dp),
+                                strokeWidth = 10.dp,
+                                color = Color(0xFF4CAF50)
+                            )
+                            Text(
+                                "$scanProgress%",
+                                color = Color.White,
+                                fontSize = 26.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(Modifier.height(20.dp))
+                        Text("Scanning your storage...", color = Color.Gray, fontSize = 16.sp)
                     }
                 }
-            )
-        }
-    ) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding)) {
-            // Summary card
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Storage Analysis",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Total scanned: ${formatSize(scanResults.totalSize)}",
-                        color = Color.Gray
-                    )
+
+                ScanningState.COMPLETED -> {
+                    scanResult?.let { result ->
+                        if (selectedCategory != null) {
+                            when (selectedCategory) {
+                                "Cache" -> CacheJunkView("Cache", result.cacheSize)
+                                "Junk" -> CacheJunkView("Junk", result.junkSize)
+                                "Large Files" -> FileGridView("Large Files", result.largeFiles, selectedFiles) { selectedFiles = it }
+                                "Duplicate Files" -> FileGridView("Duplicate Files", result.duplicateFiles, selectedFiles) { selectedFiles = it }
+                                "APK Files" -> FileGridView("APK Files", result.apkFiles, selectedFiles) { selectedFiles = it }
+                                "Empty Folders" -> FileGridView("Empty Folders", result.emptyFolders, selectedFiles) { selectedFiles = it }
+                                "Downloads" -> FileGridView("Downloads", result.downloadFiles, selectedFiles) { selectedFiles = it }
+                                "Screenshots" -> MediaGridView("Screenshots", result.screenshotFiles, selectedFiles) { selectedFiles = it }
+                                "Videos" -> MediaGridView("Videos", result.videoFiles, selectedFiles) { selectedFiles = it }
+                                "Photos" -> MediaGridView("Photos", result.photoFiles, selectedFiles) { selectedFiles = it }
+                            }
+                        } else {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(rememberScrollState())
+                            ) {
+                                // Basic Cleaning Section
+                                SectionHeader("Basic Cleaning")
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(2),
+                                    modifier = Modifier.height(100.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 16.dp)
+                                ) {
+                                    item {
+                                        SummaryCard(
+                                            title = "Cache Files",
+                                            size = result.cacheSize,
+                                            icon = Icons.Default.Cached,
+                                            color = Color(0xFFFF9800),
+                                            onClick = { selectedCategory = "Cache" }
+                                        )
+                                    }
+                                    item {
+                                        SummaryCard(
+                                            title = "Junk Files",
+                                            size = result.junkSize,
+                                            icon = Icons.Default.Delete,
+                                            color = Color(0xFFF44336),
+                                            onClick = { selectedCategory = "Junk" }
+                                        )
+                                    }
+                                }
+
+                                Spacer(Modifier.height(8.dp))
+
+                                // File Management Section
+                                SectionHeader("File Management")
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(2),
+                                    modifier = Modifier.height(100.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 16.dp)
+                                ) {
+                                    item {
+                                        SummaryCard(
+                                            title = "Large Files",
+                                            size = result.largeFiles.sumOf { it.length() },
+                                            icon = Icons.Default.Storage,
+                                            color = Color(0xFF2196F3),
+                                            onClick = { selectedCategory = "Large Files" }
+                                        )
+                                    }
+                                    item {
+                                        SummaryCard(
+                                            title = "Duplicate Files",
+                                            size = result.duplicateFiles.sumOf { it.length() },
+                                            icon = Icons.Default.CopyAll,
+                                            color = Color(0xFF9C27B0),
+                                            onClick = { selectedCategory = "Duplicate Files" }
+                                        )
+                                    }
+                                }
+
+                                Spacer(Modifier.height(8.dp))
+
+                                // App Files Section
+                                SectionHeader("App Files")
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(2),
+                                    modifier = Modifier.height(100.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 16.dp)
+                                ) {
+                                    item {
+                                        SummaryCard(
+                                            title = "APK Files",
+                                            size = result.apkFiles.sumOf { it.length() },
+                                            icon = Icons.Default.Android,
+                                            color = Color(0xFF4CAF50),
+                                            onClick = { selectedCategory = "APK Files" }
+                                        )
+                                    }
+                                    item {
+                                        SummaryCard(
+                                            title = "Empty Folders",
+                                            size = result.emptyFolders.sumOf { it.length() },
+                                            icon = Icons.Default.FolderOpen,
+                                            color = Color(0xFFFFC107),
+                                            onClick = { selectedCategory = "Empty Folders" }
+                                        )
+                                    }
+                                }
+
+                                Spacer(Modifier.height(8.dp))
+
+                                // Media Files Section
+                                SectionHeader("Media Files")
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(2),
+                                    modifier = Modifier.height(200.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 16.dp)
+                                ) {
+                                    item {
+                                        SummaryCard(
+                                            title = "Downloads",
+                                            size = result.downloadFiles.sumOf { it.length() },
+                                            icon = Icons.Default.Download,
+                                            color = Color(0xFF607D8B),
+                                            onClick = { selectedCategory = "Downloads" }
+                                        )
+                                    }
+                                    item {
+                                        SummaryCard(
+                                            title = "Screenshots",
+                                            size = result.screenshotFiles.sumOf { it.length() },
+                                            icon = Icons.Default.Screenshot,
+                                            color = Color(0xFFE91E63),
+                                            onClick = { selectedCategory = "Screenshots" }
+                                        )
+                                    }
+                                    item {
+                                        SummaryCard(
+                                            title = "Videos",
+                                            size = result.videoFiles.sumOf { it.length() },
+                                            icon = Icons.Default.Videocam,
+                                            color = Color(0xFF3F51B5),
+                                            onClick = { selectedCategory = "Videos" }
+                                        )
+                                    }
+                                    item {
+                                        SummaryCard(
+                                            title = "Photos",
+                                            size = result.photoFiles.sumOf { it.length() },
+                                            icon = Icons.Default.Photo,
+                                            color = Color(0xFF009688),
+                                            onClick = { selectedCategory = "Photos" }
+                                        )
+                                    }
+                                }
+
+                                Spacer(Modifier.height(16.dp))
+
+                                // Clean All Button
+                                Button(
+                                    onClick = { /* TODO delete all files */ },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp)
+                                        .height(50.dp)
+                                ) {
+                                    Icon(Icons.Default.CleanHands, contentDescription = "Clean", modifier = Modifier.size(20.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Clean All", color = Color.White, fontSize = 16.sp)
+                                }
+
+                                Spacer(Modifier.height(16.dp))
+                            }
+                        }
+                    }
+                }
+
+                else -> {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator(color = Color(0xFF4CAF50))
+                        Spacer(Modifier.height(12.dp))
+                        Text("Preparing scan...", color = Color.Gray)
+                    }
                 }
             }
 
-            // File type breakdown
-            LazyColumn(modifier = Modifier.padding(horizontal = 16.dp)) {
-                items(scanResults.fileCategories) { category ->
-                    FileCategoryItem(category)
+            if (selectedFiles.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Button(
+                        onClick = { /* TODO: Delete selected files */ },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336)),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Delete", color = Color.White)
+                    }
+
+                    Spacer(Modifier.width(8.dp))
+
+                    Button(
+                        onClick = { /* TODO: Move selected files to trash */ },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.DeleteSweep, contentDescription = "Move to Trash", modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Move to Trash", color = Color.White)
+                    }
                 }
             }
         }
     }
 }
 
+
+// Updated SectionHeader with better spacing
 @Composable
-fun FileCategoryItem(category: FileCategory) {
-    Card(
+fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        color = Color.White,
+        fontWeight = FontWeight.Bold,
+        fontSize = 16.sp,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
-
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Icon based on file type
-            Icon(
-                imageVector = when (category.type) {
-                    FileType.IMAGE -> Icons.Filled.Image
-                    FileType.VIDEO -> Icons.Filled.VideoLibrary
-                    FileType.AUDIO -> Icons.Filled.AudioFile
-                    FileType.DOCUMENT -> Icons.Filled.Description
-                    FileType.APP -> Icons.Filled.Apps
-                    FileType.FONT -> Icons.Filled.TextFields
-                    else -> Icons.Filled.Folder
-                },
-                contentDescription = category.type.name,
-                modifier = Modifier.size(32.dp),
-                tint = Color(0xFF6200EE)
-            )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = category.type.displayName,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = "${category.fileCount} files • ${formatSize(category.totalSize)}",
-                    fontSize = 12.sp,
-                    color = Color.Gray
-                )
-            }
-
-            // Percentage and visual indicator
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = "${category.percentage}%",
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                LinearProgressIndicator(
-                    progress = category.percentage / 100f,
-                    modifier = Modifier
-                        .width(60.dp)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp)),
-                    color = Color(0xFF6200EE)
-                )
-            }
-        }
-    }
-}
-
-// Data classes
-data class ScanResults(
-    val totalSize: Long,
-    val fileCategories: List<FileCategory>
-)
-
-data class FileCategory(
-    val type: FileType,
-    val fileCount: Int,
-    val totalSize: Long,
-    val percentage: Int
-)
-
-enum class FileType(val displayName: String) {
-    IMAGE("Images"),
-    VIDEO("Videos"),
-    AUDIO("Audio"),
-    DOCUMENT("Documents"),
-    APP("Apps"),
-    FONT("Fonts"),
-    OTHER("Other Files")
-}
-
-// Function to perform the scan (would be implemented elsewhere)
-fun performDeepScan(): ScanResults {
-    // This would actually scan the device storage
-    // For demonstration, returning mock data
-    return ScanResults(
-        totalSize = 1258490368, // 1.17 GB
-        fileCategories = listOf(
-            FileCategory(FileType.IMAGE, 243, 536870912, 42), // 512 MB
-            FileCategory(FileType.VIDEO, 87, 322122547, 25), // 307 MB
-            FileCategory(FileType.AUDIO, 156, 107374182, 8),  // 102 MB
-            FileCategory(FileType.DOCUMENT, 432, 80530636, 6), // 76 MB
-            FileCategory(FileType.APP, 23, 214748364, 17),    // 204 MB
-            FileCategory(FileType.FONT, 12, 10485760, 1),     // 10 MB
-            FileCategory(FileType.OTHER, 78, 52428800, 4)     // 50 MB
-        )
+            .padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
     )
 }
 
-// Usage in your main screen
+// Media Grid View with preview
 @Composable
-fun StorageCleanerScreen() {
-    var showScanResults by remember { mutableStateOf(false) }
-    val scanResults = remember { mutableStateOf<ScanResults?>(null) }
+fun MediaGridView(title: String, files: List<File>, selectedFiles: Set<File>, onSelectionChange: (Set<File>) -> Unit) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Text(
+            text = "$title (${files.size})",
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp,
+            modifier = Modifier.padding(16.dp)
+        )
 
-    if (showScanResults) {
-        scanResults.value?.let { results ->
-            FileScanScreen(
-                scanResults = results,
-                onBack = { showScanResults = false }
-            )
-        }
-    } else {
-        Column(modifier = Modifier.padding(16.dp)) {
-            CleanerCard(onQuickScan = {
-                // Perform the scan and show results
-                scanResults.value = performDeepScan()
-                showScanResults = true
-            })
-            // ... rest of your UI
+        if (files.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("No files found", color = Color.Gray)
+            }
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(3),
+                modifier = Modifier.height(180.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp
+                )
+            ) {
+                items(files) { file ->
+                    MediaGridItem(
+                        file = file,
+                        isSelected = selectedFiles.contains(file),
+                        onSelect = {
+                            val newSelection = selectedFiles.toMutableSet()
+                            if (newSelection.contains(file)) {
+                                newSelection.remove(file)
+                            } else {
+                                newSelection.add(file)
+                            }
+                            onSelectionChange(newSelection)
+                        }
+                    )
+                }
+            }
         }
     }
 }
+
+// Media Grid Item with thumbnail preview
+@Composable
+fun MediaGridItem(file: File, isSelected: Boolean, onSelect: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .aspectRatio(1f)
+            .clickable(onClick = onSelect)
+    ) {
+
+        Card(
+            modifier = Modifier.fillMaxSize(),
+            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isSelected) Color(0x801B5E20) else Color(0xFF2A2A2A)
+            )
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = when {
+                        file.name.contains("screenshot", true) -> Icons.Default.Screenshot
+                        file.extension.contains("mp4", true) ||
+                                file.extension.contains("mov", true) ||
+                                file.extension.contains("avi", true) -> Icons.Default.Videocam
+                        file.extension.contains("jpg", true) ||
+                                file.extension.contains("png", true) ||
+                                file.extension.contains("jpeg", true) -> Icons.Default.Photo
+                        else -> Icons.Default.Image
+                    },
+                    contentDescription = "Media",
+                    tint = Color(0xFF4CAF50),
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+        }
+
+        if (isSelected) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+            ) {
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = "Selected",
+                    tint = Color(0xFF4CAF50),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+
+        Text(
+            text = formatSize(file.length()),
+            color = Color.White,
+            fontSize = 10.sp,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(4.dp)
+                .background(Color(0x80000000), RoundedCornerShape(4.dp))
+                .padding(2.dp)
+        )
+    }
+}
+
+@Composable
+fun FileGridView(
+    title: String,
+    files: List<File>,
+    selectedFiles: Set<File>,
+    onSelectionChange: (Set<File>) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Text(
+            text = "$title (${files.size})",
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp,
+            modifier = Modifier.padding(16.dp)
+        )
+
+        if (files.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("No files found", color = Color.Gray)
+            }
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 150.dp),
+                modifier = Modifier.height(180.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp
+                )
+            ) {
+                items(files) { file ->
+                    FileGridItem(
+                        file = file,
+                        isSelected = selectedFiles.contains(file),
+                        onSelect = {
+                            val newSelection = selectedFiles.toMutableSet()
+                            if (newSelection.contains(file)) {
+                                newSelection.remove(file)
+                            } else {
+                                newSelection.add(file)
+                            }
+                            onSelectionChange(newSelection)
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+// Grid Item for Files
+@Composable
+fun FileGridItem(file: File, isSelected: Boolean, onSelect: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(0.9f)
+            .clickable(onClick = onSelect),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) Color(0xFF1B5E20)
+            else Color(0xFF2A2A2A)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            // File Icon and Name
+            Column {
+                Icon(
+                    imageVector = when {
+                        file.extension.contains("jpg", true) ||
+                                file.extension.contains("png", true) ||
+                                file.extension.contains("jpeg", true) -> Icons.Default.Image
+                        file.extension.contains("mp4", true) ||
+                                file.extension.contains("mov", true) ||
+                                file.extension.contains("avi", true) -> Icons.Default.Videocam
+                        file.extension.contains("mp3", true) ||
+                                file.extension.contains("wav", true) -> Icons.Default.AudioFile
+                        file.extension.contains("pdf", true) -> Icons.Default.PictureAsPdf
+                        file.extension.contains("doc", true) ||
+                                file.extension.contains("docx", true) -> Icons.Default.Description
+                        else -> Icons.Default.InsertDriveFile
+                    },
+                    contentDescription = "File Type",
+                    tint = Color(0xFF4CAF50),
+                    modifier = Modifier.size(32.dp)
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                Text(
+                    file.name,
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            // File Size and Selection Indicator
+            Column {
+                Text(
+                    formatSize(file.length()),
+                    color = Color(0xFF4CAF50),
+                    fontSize = 10.sp
+                )
+
+                if (isSelected) {
+                    Spacer(Modifier.height(4.dp))
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = "Selected",
+                        tint = Color(0xFF4CAF50),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// Medium SummaryCard design
+@Composable
+fun SummaryCard(
+    title: String,
+    size: Long,
+    icon: ImageVector,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(90.dp) // Medium height
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp), // Medium corners
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp) // Slight elevation
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 12.dp, vertical = 8.dp) // Medium padding
+                .fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = color,
+                modifier = Modifier.size(28.dp) // Medium icon
+            )
+            Spacer(Modifier.width(10.dp)) // Medium spacing
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    color = Color.White,
+                    fontSize = 14.sp, // Medium font
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = formatSize(size),
+                    color = Color.Gray,
+                    fontSize = 12.sp // Medium secondary text
+                )
+            }
+            Icon(
+                Icons.Default.ChevronRight,
+                contentDescription = "View Details",
+                tint = Color.Gray,
+                modifier = Modifier.size(18.dp) // Medium chevron
+            )
+        }
+    }
+}
+
+// Fix CacheJunkView as well
+@Composable
+fun CacheJunkView(title: String, size: Long) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "$title Files",
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 20.sp
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        Text(
+            text = formatSize(size),
+            color = Color(0xFF4CAF50),
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            text = "This space can be freed by cleaning $title files",
+            color = Color.Gray,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(Modifier.height(24.dp))
+
+        Button(
+            onClick = { /* TODO: Clean cache/junk */ },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+        ) {
+            Text("Clean $title")
+        }
+    }
+}
+
+@Composable
+fun FileItem(file: File, isSelected: Boolean, onSelect: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onSelect() },
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) Color(0xFF1B5E20)
+            else Color(0xFF2A2A2A)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    file.name,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    file.parent ?: "",
+                    color = Color.Gray,
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    formatSize(file.length()),
+                    color = Color(0xFF4CAF50),
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+
+                if (isSelected) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = "Selected",
+                        tint = Color(0xFF4CAF50),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+

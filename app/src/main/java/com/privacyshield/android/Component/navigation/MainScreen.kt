@@ -53,6 +53,7 @@ import androidx.navigation.navArgument
 import com.privacyshield.android.Component.MemoryManager.MemoryManagerScreen
 import com.privacyshield.android.Component.Scanner.CONTACTS.ContactCleanerScreen
 import com.privacyshield.android.Component.Scanner.FileDetailScreen
+import com.privacyshield.android.Component.Scanner.FileScanScreen
 import com.privacyshield.android.Component.Scanner.ScannerScreen
 import com.privacyshield.android.Component.Scanner.Whatsapp.CleanWhatsAppMediaScreen
 import com.privacyshield.android.Component.Scanner.Whatsapp.WhatsAppCleanerViewModel
@@ -574,7 +575,9 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
 
 
 
-
+            composable("file_scan") {
+                FileScanScreen()
+            }
 
 
             // Overview
