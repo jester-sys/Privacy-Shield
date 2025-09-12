@@ -30,6 +30,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.Cached
@@ -41,11 +42,14 @@ import androidx.compose.material.icons.filled.CopyAll
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Refresh
@@ -56,6 +60,7 @@ import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -86,6 +91,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -94,8 +100,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import coil.compose.AsyncImage
 import com.privacyshield.android.Component.Scanner.QuickScan.CleanerViewModel
 import com.privacyshield.android.Component.Scanner.QuickScan.ScanningState
+import com.privacyshield.android.Component.Settings.Trash.TrashViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -130,15 +138,25 @@ fun FileScanScreen(
     val scanResult by viewModel.scanResult.collectAsState()
     val scanProgress by viewModel.scanProgress.collectAsState()
     val scanningState by viewModel.scanningState.collectAsState()
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showTrashDialog by remember { mutableStateOf(false) }
 
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var selectedFiles by remember { mutableStateOf<Set<File>>(emptySet()) }
+    var isGridView by remember { mutableStateOf(false) } // 🔹 NEW state
 
     LaunchedEffect(Unit) {
         if (scanResult == null && scanningState == ScanningState.IDLE) {
             viewModel.quickScan()
         }
     }
+
+    TrashDialogs(
+        showTrashDialog = showTrashDialog,
+        onDismiss = { showTrashDialog = false },
+        selectedFiles = selectedFiles,
+        onMoved = { selectedFiles = emptySet() }
+    )
 
     Scaffold(
         topBar = {
@@ -183,12 +201,49 @@ fun FileScanScreen(
                         containerColor = Color(0xFF101010)
                     ),
                     navigationIcon = {
-                        IconButton(
-                            onClick = { selectedCategory = null }
-                        ) {
+                        IconButton(onClick = { selectedCategory = null }) {
                             Icon(
                                 Icons.Default.ArrowBack,
                                 contentDescription = "Back",
+                                tint = Color.White
+                            )
+                        }
+                    },
+                    actions = {
+                        // 🔹 Select All / Deselect All
+                        scanResult?.let { result ->
+                            val files = when (selectedCategory) {
+                                "Large Files" -> result.largeFiles
+                                "Duplicate Files" -> result.duplicateFiles
+                                "APK Files" -> result.apkFiles
+                                "Empty Folders" -> result.emptyFolders
+                                "Downloads" -> result.downloadFiles
+                                "Screenshots" -> result.screenshotFiles
+                                "Videos" -> result.videoFiles
+                                "Photos" -> result.photoFiles
+                                else -> emptyList()
+                            }
+                            if (files.isNotEmpty()) {
+                                val allSelected = selectedFiles.size == files.size
+                                IconButton(onClick = {
+                                    selectedFiles =
+                                        if (allSelected) emptySet()
+                                        else files.toSet()
+                                }) {
+                                    Icon(
+                                        if (allSelected) Icons.Default.Close else Icons.Default.DoneAll,
+                                        contentDescription = "Select All",
+                                        tint = Color.White
+                                    )
+                                }
+                            }
+                        }
+
+
+                        IconButton(onClick = { isGridView = !isGridView }) {
+                            Icon(
+                                if (isGridView) Icons.Default.List else Icons.Default.GridView,
+                                contentDescription = "Toggle View",
                                 tint = Color.White
                             )
                         }
@@ -235,15 +290,71 @@ fun FileScanScreen(
                             when (selectedCategory) {
                                 "Cache" -> CacheJunkView("Cache", result.cacheSize)
                                 "Junk" -> CacheJunkView("Junk", result.junkSize)
-                                "Large Files" -> FileGridView("Large Files", result.largeFiles, selectedFiles) { selectedFiles = it }
-                                "Duplicate Files" -> FileGridView("Duplicate Files", result.duplicateFiles, selectedFiles) { selectedFiles = it }
-                                "APK Files" -> FileGridView("APK Files", result.apkFiles, selectedFiles) { selectedFiles = it }
-                                "Empty Folders" -> FileGridView("Empty Folders", result.emptyFolders, selectedFiles) { selectedFiles = it }
-                                "Downloads" -> FileGridView("Downloads", result.downloadFiles, selectedFiles) { selectedFiles = it }
-                                "Screenshots" -> MediaGridView("Screenshots", result.screenshotFiles, selectedFiles) { selectedFiles = it }
-                                "Videos" -> MediaGridView("Videos", result.videoFiles, selectedFiles) { selectedFiles = it }
-                                "Photos" -> MediaGridView("Photos", result.photoFiles, selectedFiles) { selectedFiles = it }
+
+                                "Large Files" -> FileGridView(
+                                    title = "Large Files",
+                                    files = result.largeFiles,
+                                    selectedFiles = selectedFiles,
+                                    onSelectionChange = { selectedFiles = it },
+                                    isGridView = isGridView   // ✅ pass here
+                                )
+
+                                "Duplicate Files" -> FileGridView(
+                                    title = "Duplicate Files",
+                                    files = result.duplicateFiles,
+                                    selectedFiles = selectedFiles,
+                                    onSelectionChange = { selectedFiles = it },
+                                    isGridView = isGridView
+                                )
+
+                                "APK Files" -> FileGridView(
+                                    title = "APK Files",
+                                    files = result.apkFiles,
+                                    selectedFiles = selectedFiles,
+                                    onSelectionChange = { selectedFiles = it },
+                                    isGridView = isGridView
+                                )
+
+                                "Empty Folders" -> FileGridView(
+                                    title = "Empty Folders",
+                                    files = result.emptyFolders,
+                                    selectedFiles = selectedFiles,
+                                    onSelectionChange = { selectedFiles = it },
+                                    isGridView = isGridView
+                                )
+
+                                "Downloads" -> FileGridView(
+                                    title = "Downloads",
+                                    files = result.downloadFiles,
+                                    selectedFiles = selectedFiles,
+                                    onSelectionChange = { selectedFiles = it },
+                                    isGridView = isGridView
+                                )
+
+                                "Screenshots" -> MediaGridView(
+                                    title = "Screenshots",
+                                    files = result.screenshotFiles,
+                                    selectedFiles = selectedFiles,
+                                    onSelectionChange = { selectedFiles = it },
+                                    isGridView = isGridView
+                                )
+
+                                "Videos" -> MediaGridView(
+                                    title = "Videos",
+                                    files = result.videoFiles,
+                                    selectedFiles = selectedFiles,
+                                    onSelectionChange = { selectedFiles = it },
+                                    isGridView = isGridView
+                                )
+                                "Photos" -> MediaGridView(
+                                    title = "Photos",
+                                    files = result.photoFiles,
+                                    selectedFiles = selectedFiles,
+                                    onSelectionChange = { selectedFiles = it },
+                                    isGridView = isGridView
+                                )
                             }
+
                         } else {
                             Column(
                                 modifier = Modifier
@@ -305,7 +416,7 @@ fun FileScanScreen(
                                             size = result.duplicateFiles.sumOf { it.length() },
                                             icon = Icons.Default.CopyAll,
                                             color = Color(0xFF9C27B0),
-                                            onClick = { selectedCategory = "Duplicate Files" }
+                                             onClick = { selectedCategory = "Duplicate Files" }
                                         )
                                     }
                                 }
@@ -425,40 +536,95 @@ fun FileScanScreen(
                     }
                 }
             }
-
             if (selectedFiles.isNotEmpty()) {
                 Row(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    // ❌ Delete Button
                     Button(
-                        onClick = { /* TODO: Delete selected files */ },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF44336)),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f)
+                        onClick = { showDeleteDialog = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF5350)), // Softer red
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 4.dp,
+                            pressedElevation = 8.dp
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(55.dp) // Taller button
                     ) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Delete", color = Color.White)
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            modifier = Modifier.size(22.dp),
+                            tint = Color.White
+                        )
+                        Text(
+                            "Delete",
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
 
-                    Spacer(Modifier.width(8.dp))
-
+                    // 🗑 Move to Trash Button
                     Button(
-                        onClick = { /* TODO: Move selected files to trash */ },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f)
+                        onClick = { showTrashDialog = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFB74D)), // Warm orange
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 4.dp,
+                            pressedElevation = 8.dp
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(55.dp)
                     ) {
-                        Icon(Icons.Default.DeleteSweep, contentDescription = "Move to Trash", modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("Move to Trash", color = Color.White)
+                        Icon(
+                            Icons.Default.DeleteSweep,
+                            contentDescription = "Move to Trash",
+                            modifier = Modifier.size(22.dp),
+                            tint = Color.White
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            "Move to Trash",
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
             }
+
+            if (showDeleteDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteDialog = false },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            selectedFiles.forEach { it.delete() } // actual delete
+                            selectedFiles = emptySet()
+                            showDeleteDialog = false
+                        }) {
+                            Text("Delete", color = Color.Red)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDeleteDialog = false }) {
+                            Text("Cancel")
+                        }
+                    },
+                    title = { Text("Delete Files?", color = Color.White) },
+                    text = { Text("Are you sure you want to permanently delete the selected files?", color = Color.Gray) },
+                    containerColor = Color(0xFF1E1E1E)
+                )
+            }
+
+
         }
     }
 }
@@ -478,179 +644,197 @@ fun SectionHeader(title: String) {
     )
 }
 
-// Media Grid View with preview
+
+
+// Media View (Grid + List Toggle)
 @Composable
-fun MediaGridView(title: String, files: List<File>, selectedFiles: Set<File>, onSelectionChange: (Set<File>) -> Unit) {
+fun MediaGridView(
+    title: String,
+    files: List<File>,
+    selectedFiles: Set<File>,
+    onSelectionChange: (Set<File>) -> Unit,
+    isGridView: Boolean   // 🔹 New param
+) {
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
-            text = "$title (${files.size})",
-            color = Color.White,
-            fontWeight = FontWeight.Bold,
-            fontSize = 18.sp,
-            modifier = Modifier.padding(16.dp)
+            text = "${files.size} items found",
+            color = Color.Gray,
+            fontSize = 14.sp,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
         if (files.isEmpty()) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
+                modifier = Modifier.fillMaxSize().weight(1f),
                 contentAlignment = Alignment.Center
             ) {
-                Text("No files found", color = Color.Gray)
+                Text("No media found", color = Color.Gray)
             }
         } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                modifier = Modifier.height(180.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    end = 16.dp
-                )
-            ) {
-                items(files) { file ->
-                    MediaGridItem(
-                        file = file,
-                        isSelected = selectedFiles.contains(file),
-                        onSelect = {
-                            val newSelection = selectedFiles.toMutableSet()
-                            if (newSelection.contains(file)) {
-                                newSelection.remove(file)
-                            } else {
-                                newSelection.add(file)
+            if (isGridView) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(12.dp)
+                ) {
+                    items(files) { file ->
+                        MediaGridItem(
+                            file = file,
+                            isSelected = selectedFiles.contains(file),
+                            onSelect = {
+                                val newSel = selectedFiles.toMutableSet()
+                                if (!newSel.add(file)) newSel.remove(file)
+                                onSelectionChange(newSel)
                             }
-                            onSelectionChange(newSelection)
-                        }
-                    )
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(files) { file ->
+                        MediaGridItem(
+                            file = file,
+                            isSelected = selectedFiles.contains(file),
+                            onSelect = {
+                                val newSel = selectedFiles.toMutableSet()
+                                if (!newSel.add(file)) newSel.remove(file)
+                                onSelectionChange(newSel)
+                            }
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-// Media Grid Item with thumbnail preview
+// Media Grid Item with Thumbnail + Size
 @Composable
 fun MediaGridItem(file: File, isSelected: Boolean, onSelect: () -> Unit) {
     Box(
         modifier = Modifier
             .aspectRatio(1f)
+            .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onSelect)
     ) {
-
-        Card(
+        // 🔹 Thumbnail
+        AsyncImage(
+            model = file,
+            contentDescription = null,
             modifier = Modifier.fillMaxSize(),
-            shape = RoundedCornerShape(8.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = if (isSelected) Color(0x801B5E20) else Color(0xFF2A2A2A)
-            )
+            contentScale = ContentScale.Crop
+        )
+
+        // 🔹 File size overlay (bottom-left)
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(topEnd = 8.dp))
+                .padding(horizontal = 6.dp, vertical = 3.dp)
         ) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = when {
-                        file.name.contains("screenshot", true) -> Icons.Default.Screenshot
-                        file.extension.contains("mp4", true) ||
-                                file.extension.contains("mov", true) ||
-                                file.extension.contains("avi", true) -> Icons.Default.Videocam
-                        file.extension.contains("jpg", true) ||
-                                file.extension.contains("png", true) ||
-                                file.extension.contains("jpeg", true) -> Icons.Default.Photo
-                        else -> Icons.Default.Image
-                    },
-                    contentDescription = "Media",
-                    tint = Color(0xFF4CAF50),
-                    modifier = Modifier.size(32.dp)
-                )
-            }
+            Text(
+                text = formatSize(file.length()), // ✅ show size
+                color = Color.White,
+                fontSize = 11.sp
+            )
         }
 
+        // 🔹 Selection Overlay
         if (isSelected) {
             Box(
                 modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0x802196F3))
+            )
+            Icon(
+                Icons.Default.CheckCircle,
+                contentDescription = "Selected",
+                tint = Color(0xFF4CAF50),
+                modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(4.dp)
-            ) {
-                Icon(
-                    Icons.Default.CheckCircle,
-                    contentDescription = "Selected",
-                    tint = Color(0xFF4CAF50),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
+                    .padding(6.dp)
+                    .size(22.dp)
+            )
         }
-
-        Text(
-            text = formatSize(file.length()),
-            color = Color.White,
-            fontSize = 10.sp,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(4.dp)
-                .background(Color(0x80000000), RoundedCornerShape(4.dp))
-                .padding(2.dp)
-        )
     }
 }
 
+
+// File View (List + Grid Toggle)
 @Composable
 fun FileGridView(
     title: String,
     files: List<File>,
     selectedFiles: Set<File>,
-    onSelectionChange: (Set<File>) -> Unit
+    onSelectionChange: (Set<File>) -> Unit,
+    isGridView: Boolean   // 🔹 New param
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
-            text = "$title (${files.size})",
-            color = Color.White,
-            fontWeight = FontWeight.Bold,
-            fontSize = 18.sp,
-            modifier = Modifier.padding(16.dp)
+            text = "${files.size} items found",
+            color = Color.Gray,
+            fontSize = 14.sp,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
         if (files.isEmpty()) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
+                modifier = Modifier.fillMaxSize().weight(1f),
                 contentAlignment = Alignment.Center
             ) {
                 Text("No files found", color = Color.Gray)
             }
         } else {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 150.dp),
-                modifier = Modifier.height(180.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    end = 16.dp
-                )
-            ) {
-                items(files) { file ->
-                    FileGridItem(
-                        file = file,
-                        isSelected = selectedFiles.contains(file),
-                        onSelect = {
-                            val newSelection = selectedFiles.toMutableSet()
-                            if (newSelection.contains(file)) {
-                                newSelection.remove(file)
-                            } else {
-                                newSelection.add(file)
+            if (isGridView) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(12.dp)
+                ) {
+                    items(files) { file ->
+                        FileItem(
+                            file = file,
+                            isSelected = selectedFiles.contains(file),
+                            onSelect = {
+                                val newSel = selectedFiles.toMutableSet()
+                                if (!newSel.add(file)) newSel.remove(file)
+                                onSelectionChange(newSel)
                             }
-                            onSelectionChange(newSelection)
-                        }
-                    )
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(files) { file ->
+                        FileItem(
+                            file = file,
+                            isSelected = selectedFiles.contains(file),
+                            onSelect = {
+                                val newSel = selectedFiles.toMutableSet()
+                                if (!newSel.add(file)) newSel.remove(file)
+                                onSelectionChange(newSel)
+                            }
+                        )
+                    }
                 }
             }
         }
     }
 }
+
+
 
 // Grid Item for Files
 @Composable
@@ -785,6 +969,7 @@ fun SummaryCard(
 }
 
 // Fix CacheJunkView as well
+// CacheJunkView with proper layout
 @Composable
 fun CacheJunkView(title: String, size: Long) {
     Column(
@@ -795,7 +980,7 @@ fun CacheJunkView(title: String, size: Long) {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "$title Files",
+            text = title,
             color = Color.White,
             fontWeight = FontWeight.Bold,
             fontSize = 20.sp
@@ -829,34 +1014,52 @@ fun CacheJunkView(title: String, size: Long) {
     }
 }
 
+// File Item with Thumbnail
 @Composable
 fun FileItem(file: File, isSelected: Boolean, onSelect: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onSelect() },
-        shape = RoundedCornerShape(8.dp),
+            .clickable(onClick = onSelect),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) Color(0xFF1B5E20)
-            else Color(0xFF2A2A2A)
-        )
+            containerColor = if (isSelected) Color(0x802196F3) else Color(0xFF2A2A2A)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
             modifier = Modifier
                 .padding(12.dp)
                 .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            // 🔹 Thumbnail
+            Icon(
+                imageVector = when {
+                    file.extension.equals("apk", true) -> Icons.Default.Android
+                    file.extension.equals("zip", true) || file.extension.equals("rar", true) -> Icons.Default.Archive
+                    else -> Icons.Default.InsertDriveFile
+                },
+                contentDescription = null,
+                tint = Color(0xFF90CAF9),
+                modifier = Modifier
+                    .size(36.dp)
+                    .padding(end = 8.dp)
+            )
+
+            // 🔹 File Info
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     file.name,
                     color = Color.White,
+                    fontSize = 15.sp,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    file.parent ?: "",
+                    file.absolutePath,
                     color = Color.Gray,
                     fontSize = 12.sp,
                     maxLines = 1,
@@ -864,12 +1067,13 @@ fun FileItem(file: File, isSelected: Boolean, onSelect: () -> Unit) {
                 )
             }
 
+            // 🔹 File Size + Check Icon
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    formatSize(file.length()),
+                    formatSize(file.length()), // ✅ Size shown
                     color = Color(0xFF4CAF50),
                     fontSize = 12.sp,
-                    modifier = Modifier.padding(end = 8.dp)
+                    modifier = Modifier.padding(end = 6.dp)
                 )
 
                 if (isSelected) {
@@ -877,7 +1081,7 @@ fun FileItem(file: File, isSelected: Boolean, onSelect: () -> Unit) {
                         Icons.Default.CheckCircle,
                         contentDescription = "Selected",
                         tint = Color(0xFF4CAF50),
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                 }
             }
@@ -885,3 +1089,40 @@ fun FileItem(file: File, isSelected: Boolean, onSelect: () -> Unit) {
     }
 }
 
+
+@Composable
+fun TrashDialogs(
+    showTrashDialog: Boolean,
+    onDismiss: () -> Unit,
+    selectedFiles: Set<File>,
+    onMoved: () -> Unit,
+    trashViewModel: TrashViewModel = hiltViewModel()
+) {
+    if (showTrashDialog) {
+        AlertDialog(
+            onDismissRequest = { onDismiss() },
+            confirmButton = {
+                TextButton(onClick = {
+                    trashViewModel.moveToTrash(selectedFiles) // ✅ Set<File> pass
+                    onMoved()
+                    onDismiss()
+                }) {
+                    Text("Move", color = Color(0xFFFF9800))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { onDismiss() }) {
+                    Text("Cancel")
+                }
+            },
+            title = { Text("Move to Trash?", color = Color.White) },
+            text = {
+                Text(
+                    "Selected files will be moved to Trash. You can restore or delete them later.",
+                    color = Color.Gray
+                )
+            },
+            containerColor = Color(0xFF1E1E1E)
+        )
+    }
+}
