@@ -1,6 +1,7 @@
 package com.privacyshield.android.Component.Scanner.QuickScan
 
 import android.content.Context
+import android.net.wifi.ScanResult
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
@@ -12,6 +13,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -35,9 +37,8 @@ class CleanerViewModel @Inject constructor(
     val scanningState: StateFlow<ScanningState> = _scanningState
 
 
-
     fun quickScan() {
-        if (hasScanned) return  // prevent multiple scans
+        if (hasScanned) return
         hasScanned = true
 
         _scanningState.value = ScanningState.SCANNING
@@ -82,10 +83,33 @@ class CleanerViewModel @Inject constructor(
         _scanResult.value = null
         _scanProgress.value = 0
         _scanningState.value = ScanningState.IDLE
+        hasScanned = false
+    }
+
+    // 🔹 Ye function ViewModel ke andar hi hona chahiye
+    fun updateAfterDelete(deletedFiles: Set<File>, category: String?) {
+        _scanResult.update { result ->
+            result?.let {
+                when (category) {
+                    "Large Files" -> it.copy(largeFiles = it.largeFiles - deletedFiles)
+                    "Duplicate Files" -> it.copy(duplicateFiles = it.duplicateFiles - deletedFiles)
+                    "APK Files" -> it.copy(apkFiles = it.apkFiles - deletedFiles)
+                    "Empty Folders" -> it.copy(emptyFolders = it.emptyFolders - deletedFiles)
+                    "Downloads" -> it.copy(downloadFiles = it.downloadFiles - deletedFiles)
+                    "Screenshots" -> it.copy(screenshotFiles = it.screenshotFiles - deletedFiles)
+                    "Videos" -> it.copy(videoFiles = it.videoFiles - deletedFiles)
+                    "Photos" -> it.copy(photoFiles = it.photoFiles - deletedFiles)
+                    "Cache" -> it.copy(cacheSize = 0L)
+                    "Junk" -> it.copy(junkSize = 0L)
+                    else -> it
+                }
+            }
+        }
     }
 }
 
 enum class ScanningState { IDLE, SCANNING, COMPLETED, ERROR }
+
 
 
 // ---------------- Scan Functions ----------------

@@ -24,7 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.privacyshield.android.Model.AppDetail
-import com.privacyshield.android.ui.theme.BluePrimary
+import com.privacyshield.android.ui.theme.GreenPrimary
+
 
 @Composable
 fun PermissionDialog(
@@ -83,7 +84,7 @@ fun PermissionDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = { onNavigate() },
-                        colors = ButtonDefaults.buttonColors(containerColor = BluePrimary)
+                        colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary)
                     ) {
                         Text("Go to Settings",color = Color.White)
                     }

@@ -37,7 +37,9 @@ import androidx.compose.ui.window.Dialog
 import com.privacyshield.android.Component.Helper.AppIcon
 import com.privacyshield.android.Component.Screen.Model.StorageUsage
 import com.privacyshield.android.Model.AppDetail
-import com.privacyshield.android.ui.theme.BluePrimary
+import com.privacyshield.android.ui.theme.GreenPrimary
+
+
 @Composable
 fun StorageUsageDialog(
     context: Context,
@@ -113,7 +115,7 @@ fun StorageUsageDialog(
                     }
                         context.startActivity(intent)},
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = BluePrimary)
+                    colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary)
                 ) {
                     Text("Manage", color = Color.White)
                 }
@@ -122,7 +124,7 @@ fun StorageUsageDialog(
                 Button(
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = BluePrimary)
+                    colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary)
                 ) {
                     Text("Close", color = Color.White)
                 }

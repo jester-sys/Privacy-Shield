@@ -107,7 +107,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.window.Dialog
 import com.privacyshield.android.Component.Screen.Permission.getPermissionExplanation
-import com.privacyshield.android.ui.theme.BluePrimary
+import com.privacyshield.android.ui.theme.GreenPrimary
 import kotlinx.coroutines.launch
 import java.sql.Date
 import java.text.SimpleDateFormat
@@ -546,7 +546,7 @@ fun ImportantPermissionsRow(app: AppDetail) {
                         Button(
                             onClick = { showDialog = false },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = BluePrimary,
+                                containerColor = GreenPrimary,
                                 contentColor = Color.White
                             ),
                             modifier = Modifier.fillMaxWidth()

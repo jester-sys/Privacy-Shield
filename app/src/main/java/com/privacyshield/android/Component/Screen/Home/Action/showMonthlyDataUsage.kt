@@ -47,7 +47,7 @@ import androidx.compose.ui.window.Dialog
 import com.privacyshield.android.Component.Helper.AppIcon
 import com.privacyshield.android.Component.Helper.toPainter
 import com.privacyshield.android.Model.AppDetail
-import com.privacyshield.android.ui.theme.BluePrimary
+import com.privacyshield.android.ui.theme.GreenPrimary
 import com.privacyshield.android.ui.theme.TextPrimaryDark
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -121,7 +121,7 @@ fun AppDataUsageCard(
                                 .padding(32.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator(color = BluePrimary)
+                            CircularProgressIndicator(color = GreenPrimary)
                         }
                     }
 
@@ -227,14 +227,14 @@ fun AppDataUsageCard(
                                     }
                                         context.startActivity(intent)},
                                     modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(containerColor = BluePrimary)
+                                    colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary)
                                 ) {
                                     Text("Manage", color = Color.White)
                                 }
                                 Button(
                                     onClick = onDismiss,
                                     modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(containerColor = BluePrimary)
+                                    colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary)
                                 ) {
                                     Text("Close", color = Color.White)
                                 }

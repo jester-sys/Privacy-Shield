@@ -75,8 +75,12 @@ import com.privacyshield.android.Component.Screen.Model.StorageUsage
 import com.privacyshield.android.Component.Screen.Overview.OverviewScreen
 import com.privacyshield.android.Component.Screen.Permission.PermissionDetailsScreen
 import com.privacyshield.android.Component.Screen.UsageStatsScreen.AppUsageDetailsScreen
+import com.privacyshield.android.Component.Settings.AppSecurity.AppSecurityScreen
+import com.privacyshield.android.Component.Settings.PrivacySecurityScreen
+import com.privacyshield.android.Component.Settings.SettingsScreen
+import com.privacyshield.android.Component.Settings.Trash.TrashScreen
 import com.privacyshield.android.Model.AppDetail
-import com.privacyshield.android.ui.theme.BluePrimary
+import com.privacyshield.android.ui.theme.GreenPrimary
 import java.io.File
 
 
@@ -87,7 +91,7 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
         BottomNavItem.Home,
         BottomNavItem.Scanner,
         BottomNavItem.Overview,
-        BottomNavItem.MemoryManager
+        BottomNavItem.Settings
     )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -126,7 +130,6 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
         ?.savedStateHandle
         ?.get<AppDetail>("selectedApp")
 
-    // Assign app to MainScreen state for bottom sheet
     LaunchedEffect(app) {
         if (app != null) selectedApp = app
     }
@@ -476,11 +479,11 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                                     )
                                 },
                                 colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = BluePrimary,
+                                    selectedIconColor = GreenPrimary,
                                     unselectedIconColor = Color(0xFF9E9E9E),
-                                    selectedTextColor = BluePrimary,
+                                    selectedTextColor = GreenPrimary,
                                     unselectedTextColor = Color(0xFF9E9E9E),
-                                    indicatorColor = BluePrimary.copy(alpha = 0.2f)
+                                    indicatorColor = GreenPrimary.copy(alpha = 0.2f)
                                 )
                             )
                         }
@@ -577,14 +580,34 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                 // Overview
                 composable(BottomNavItem.Overview.route.route) { OverviewScreen() }
                 composable(BottomNavItem.Scanner.route.route) { ScannerScreen(navController) }
+                composable(BottomNavItem.Settings.route.route) {SettingsScreen(navController)  }
 
 
-                composable(BottomNavItem.MemoryManager.route.route) { MemoryManagerScreen() }
+            //    composable(BottomNavItem.MemoryManager.route.route) { MemoryManagerScreen() }
 
                 // Permission Tab
                 //  composable(BottomNavItem.Permission.route.route) { PermissionScreen() }
 
                 // App Details
+
+                composable("trash_clean") {
+
+                   TrashScreen()
+                }
+
+                composable("privacy_security") {
+
+                PrivacySecurityScreen(navController)
+                }
+                composable("app_security") {
+
+                   AppSecurityScreen(navController)
+                }
+
+
+
+
+
 
                 composable("clean_whatsapp_media") {
 

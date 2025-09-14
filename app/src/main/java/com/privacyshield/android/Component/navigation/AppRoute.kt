@@ -8,6 +8,6 @@ sealed class AppRoute(val route: String) {
     data object Home : AppRoute("home")
     data object Scanner: AppRoute("scanner")
     data object Overview : AppRoute("overview")
-    data object MemoryManager : AppRoute("memory_manager")
+    data object Settings : AppRoute("settings")
     data object Details :  AppRoute("details")
 }

@@ -127,7 +127,7 @@ fun ContactCleanerScreen(
         }
     }
 
-    // 🔹 expand state for groups
+
     val expandedGroups = remember { mutableStateMapOf<String, Boolean>() }
 
     Scaffold(

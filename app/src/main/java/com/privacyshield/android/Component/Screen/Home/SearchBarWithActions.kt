@@ -37,7 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.privacyshield.android.Model.AppDetail
-import com.privacyshield.android.ui.theme.BluePrimary
+import com.privacyshield.android.ui.theme.GreenPrimary
 
 @Composable
 fun SearchBarWithActions(
@@ -63,7 +63,7 @@ fun SearchBarWithActions(
                 singleLine = true,
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = BluePrimary,
+                    focusedIndicatorColor = GreenPrimary,
                     unfocusedIndicatorColor = Color.Gray,
                     disabledIndicatorColor = Color.LightGray,
                     errorIndicatorColor = Color.Red,
@@ -81,7 +81,7 @@ fun SearchBarWithActions(
                     .height(58.dp)
                     .width(58.dp)
                     .offset(y = 4.dp)
-                    .background(BluePrimary, RoundedCornerShape(12.dp)),
+                    .background(GreenPrimary, RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 IconButton(

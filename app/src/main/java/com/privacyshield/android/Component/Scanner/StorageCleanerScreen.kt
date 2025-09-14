@@ -130,10 +130,12 @@ data class QuickScanResult(
 )
 
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FileScanScreen(
-    viewModel: CleanerViewModel = hiltViewModel()
+    viewModel: CleanerViewModel = hiltViewModel(),
+    trashViewModel: TrashViewModel = hiltViewModel()
 ) {
     val scanResult by viewModel.scanResult.collectAsState()
     val scanProgress by viewModel.scanProgress.collectAsState()
@@ -606,13 +608,20 @@ fun FileScanScreen(
                     onDismissRequest = { showDeleteDialog = false },
                     confirmButton = {
                         TextButton(onClick = {
-                            selectedFiles.forEach { it.delete() } // actual delete
+                            // Delete files from disk
+                            selectedFiles.forEach { it.delete() }
+
+                            // ✅ Update ViewModel state so UI recomposes
+                            viewModel.updateAfterDelete(selectedFiles, selectedCategory)
+
+                            // Clear selection
                             selectedFiles = emptySet()
                             showDeleteDialog = false
                         }) {
                             Text("Delete", color = Color.Red)
                         }
                     },
+
                     dismissButton = {
                         TextButton(onClick = { showDeleteDialog = false }) {
                             Text("Cancel")
