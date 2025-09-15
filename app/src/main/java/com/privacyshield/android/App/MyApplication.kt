@@ -5,7 +5,6 @@ import android.app.Application
 import android.content.Context
 import com.privacyshield.android.Component.Scanner.unusgeApp.scheduleUnusedAppsWorker
 import dagger.hilt.android.HiltAndroidApp
-
 @HiltAndroidApp
 class MyApplication : Application() {
 

@@ -78,6 +78,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.privacyshield.android.Component.Scanner.QuickScan.Helper.scanCacheFiles
 import com.privacyshield.android.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -145,6 +146,7 @@ fun ScannerScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         CleanerCard(navController)
+        ScanCard(navController,3,"")
 
 
 
@@ -333,20 +335,31 @@ fun ScannerScreen(
 
 
 @Composable
-fun QuickScanButton(onClick: () -> Unit) {
+fun QuickScanButton(
+    progress: Float, // 0f..1f
+    onClick: () -> Unit
+) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .size(110.dp) // outer ring size
-            .background(Color(0xFF2A2A2A), CircleShape) // ring ka color (dark background)
-            .padding(6.dp) // space for inner circle
+            .size(110.dp)
             .clickable { onClick() }
     ) {
+        // Outer Circular Progress
+        CircularProgressIndicator(
+            progress = progress,
+            strokeWidth = 8.dp,
+            modifier = Modifier.fillMaxSize(),
+            color = Color(0xFF3DDC84), // highlight color
+            trackColor = Color(0xFF2A2A2A)
+        )
+
+        // Inner Circle Button
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF3A3F77), CircleShape) // inner filled circle
+                .size(90.dp)
+                .background(Color(0xFF3A3F77), CircleShape)
         ) {
             Text(
                 text = "Quick\nScan",
@@ -357,7 +370,7 @@ fun QuickScanButton(onClick: () -> Unit) {
             )
         }
     }
-   }
+}
 
 
 @Composable
@@ -367,12 +380,17 @@ fun CleanerCard(
     val storageInfo = remember { getStorageInfo() }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -384,27 +402,105 @@ fun CleanerCard(
                     color = Color.White
                 )
 
-                Text(
-                    text = "Free: ${storageInfo.freePercent}% • Used: ${storageInfo.usedPercent}%",
-                    fontSize = 14.sp,
-                    color = Color(0xFFBBBBBB)
-                )
+                // Storage percentages with color highlight
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Free: ",
+                        fontSize = 14.sp,
+                        color = Color(0xFF4CAF50), // Green
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "${storageInfo.freePercent}%",
+                        fontSize = 14.sp,
+                        color = Color(0xFF4CAF50),
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Text(
+                        text = "Used: ",
+                        fontSize = 14.sp,
+                        color = Color(0xFFF44336), // Red
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "${storageInfo.usedPercent}%",
+                        fontSize = 14.sp,
+                        color = Color(0xFFF44336),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
 
                 Text(
-                    text = "Total: ${formatSize(storageInfo.totalBytes)} | Free: ${
-                        formatSize(storageInfo.freeBytes)
-                    }",
+                    text = "Total: ${formatSize(storageInfo.totalBytes)} | Free: ${formatSize(storageInfo.freeBytes)}",
                     fontSize = 12.sp,
                     color = Color.Gray
                 )
             }
 
+            // Quick Scan with Circular Progress
             QuickScanButton(
+                progress = storageInfo.freePercent / 100f,
                 onClick = { navController.navigate("file_scan") }
             )
         }
     }
 }
+
+@Composable
+fun ScanCard(
+    navController: NavController,
+    scannedFilesCount: Int = 0,
+    lastScanTime: String = "Never"
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "You scanned $scannedFilesCount files",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    color = Color.White
+                )
+
+                Text(
+                    text = "Last Scan: $lastScanTime",
+                    fontSize = 14.sp,
+                    color = Color(0xFFBBBBBB)
+                )
+
+                Text(
+                    text = "Scan all your important files safely",
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+            }
+
+            Button(
+                onClick = { navController.navigate("scan_files_apps") },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3DDC84))
+            ) {
+                Text(text = "Quick Scan", color = Color.White)
+            }
+        }
+    }
+}
+
 
 
 // ✅ Helper function to handle both singular/plural folder names

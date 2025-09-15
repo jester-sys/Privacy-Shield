@@ -76,6 +76,7 @@ import com.privacyshield.android.Component.Screen.Overview.OverviewScreen
 import com.privacyshield.android.Component.Screen.Permission.PermissionDetailsScreen
 import com.privacyshield.android.Component.Screen.UsageStatsScreen.AppUsageDetailsScreen
 import com.privacyshield.android.Component.Settings.AppSecurity.AppSecurityScreen
+import com.privacyshield.android.Component.Settings.DownloadScreen
 import com.privacyshield.android.Component.Settings.PrivacySecurityScreen
 import com.privacyshield.android.Component.Settings.SettingsScreen
 import com.privacyshield.android.Component.Settings.Trash.TrashScreen
@@ -568,6 +569,11 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                             navController.navigate("details")
                         }
                     )
+                }
+
+
+                composable("download_screen") {
+                    DownloadScreen()
                 }
 
 

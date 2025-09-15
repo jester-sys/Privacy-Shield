@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Warning
@@ -55,7 +56,7 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 🔹 Privacy & Security section (navigation only)
+        // 🔹 Privacy & Security section
         SettingNavigationItem(
             title = "Privacy & Security",
             icon = Icons.Default.Security,
@@ -64,7 +65,7 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 🔹 Extra Features wrapped in cards
+        // 🔹 Extra Features
         SettingNavigationItem(
             title = "Trash Cleaner",
             icon = Icons.Default.Delete,
@@ -76,8 +77,17 @@ fun SettingsScreen(
             icon = Icons.Default.ColorLens,
             onClick = { navController.navigate("theme") }
         )
+
+        // 🔹 New Downloads / Scan Results section
+        Spacer(modifier = Modifier.height(24.dp))
+        SettingNavigationItem(
+            title = "Download / Scan Results",
+            icon = Icons.Default.FileDownload,
+            onClick = { navController.navigate("download_screen") }
+        )
     }
 }
+
 @Composable
 fun SettingNavigationItem(
     title: String,

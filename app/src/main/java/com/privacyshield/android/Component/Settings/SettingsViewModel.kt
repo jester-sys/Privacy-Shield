@@ -6,6 +6,7 @@ import android.app.AppOpsManager
 import android.app.KeyguardManager
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import android.provider.Settings
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
@@ -156,11 +157,15 @@ class SettingsViewModel @Inject constructor(
     fun hasUsageAccess(context: Context): Boolean {
         return try {
             val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-            val mode = appOps.unsafeCheckOpNoThrow(
-                "android:get_usage_stats",
-                android.os.Process.myUid(),
-                context.packageName
-            )
+            val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                appOps.unsafeCheckOpNoThrow(
+                    "android:get_usage_stats",
+                    android.os.Process.myUid(),
+                    context.packageName
+                )
+            } else {
+                TODO("VERSION.SDK_INT < Q")
+            }
             mode == AppOpsManager.MODE_ALLOWED
         } catch (e: Exception) {
             false

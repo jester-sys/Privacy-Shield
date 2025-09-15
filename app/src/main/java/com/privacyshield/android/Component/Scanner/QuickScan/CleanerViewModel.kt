@@ -1,28 +1,38 @@
 package com.privacyshield.android.Component.Scanner.QuickScan
 
 import android.content.Context
+import android.content.Intent
 import android.net.wifi.ScanResult
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.privacyshield.android.Component.Scanner.QuickScanResult
+import com.privacyshield.android.Component.VirusTotal.VirusTotalRepository
+import com.privacyshield.android.Component.VirusTotal.VirusTotalResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.LinkedList
+import java.util.Locale
 import javax.inject.Inject
 
 // ---------------------- ViewModel ----------------------
 @HiltViewModel
 class CleanerViewModel @Inject constructor(
+    private val virusTotalRepo: VirusTotalRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -33,8 +43,167 @@ class CleanerViewModel @Inject constructor(
     val scanProgress: StateFlow<Int> = _scanProgress
     private var hasScanned = false
 
+
     private val _scanningState = MutableStateFlow(ScanningState.IDLE)
     val scanningState: StateFlow<ScanningState> = _scanningState
+
+    private val _vtScanProgress = MutableStateFlow(0)
+    val vtScanProgress: StateFlow<Int> = _vtScanProgress
+
+    private val _vtScanDialog = MutableStateFlow(false)
+    val vtScanDialog: StateFlow<Boolean> = _vtScanDialog
+
+
+    // ViewModel me
+    fun updateVTProgress(progress: Int) {
+        _vtScanProgress.value = progress
+    }
+
+    fun scanFilesWithVirusTotal(files: Set<File>) {
+        viewModelScope.launch {
+            _vtScanDialog.value = true
+            val results = mutableListOf<VirusTotalResult>()
+
+            files.forEachIndexed { index, file ->
+                val result = virusTotalRepo.scanFile(file)
+                results.add(result)
+                _vtScanProgress.value = ((index + 1) * 100 / files.size)
+            }
+
+            val downloads =
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            val scanFolder = File(downloads, "VT_Scan_Results").apply { mkdirs() }
+
+            results.forEach { r ->
+                val fileOut = File(scanFolder, "${r.fileName}_scan.html")
+
+                val htmlContent = """ 
+                <html> 
+                <head>
+                    <title>Scan Report - ${r.fileName}</title>
+                    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                    <style>
+                        body {
+                            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+                            color: #ffffff;
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                            padding: 24px;
+                        }
+                        h2 {
+                            color: #3DDC84;
+                            text-shadow: 1px 1px 4px rgba(0,0,0,0.6);
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 16px;
+                            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+                            border-radius: 8px;
+                            overflow: hidden;
+                        }
+                        th, td {
+                            padding: 10px;
+                            text-align: left;
+                        }
+                        th {
+                            background-color: #1E1E1E;
+                            font-size: 14px;
+                        }
+                        td {
+                            background-color: #2A2A2A;
+                            font-size: 13px;
+                        }
+                        .malicious { color: #FF4C4C; font-weight: bold; }
+                        .harmless { color: #4CAF50; font-weight: bold; }
+                        .suspicious { color: #FFC107; font-weight: bold; }
+                        .undetected { color: #9E9E9E; font-weight: bold; }
+                        .timeout { color: #FF00FF; font-weight: bold; }
+                        canvas {
+                            margin-top: 24px;
+                            max-width: 300px;
+                            max-height: 300px;
+                            display: block;
+                            margin-left: auto;
+                            margin-right: auto;
+                        }
+                        p {
+                            font-size: 14px;
+                            color: #CCCCCC;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h2>Scan Report: ${r.fileName}</h2>
+                    <p>Scan Date: ${
+                    SimpleDateFormat(
+                        "dd-MM-yyyy HH:mm:ss",
+                        Locale.getDefault()
+                    ).format(Date())
+                }</p>
+                    
+                    <table>
+                        <tr><th>Result Type</th><th>Count</th></tr>
+                        <tr><td class="malicious">Malicious</td><td>${r.malicious}</td></tr>
+                        <tr><td class="harmless">Harmless</td><td>${r.harmless}</td></tr>
+                        <tr><td class="suspicious">Suspicious</td><td>${r.suspicious}</td></tr>
+                        <tr><td class="undetected">Undetected</td><td>${r.undetected}</td></tr>
+                        <tr><td class="timeout">Timeout</td><td>${r.timeout}</td></tr>
+                    </table>
+
+                    <canvas id="vtChart"></canvas>
+
+                    <script>
+                        const ctx = document.getElementById('vtChart').getContext('2d');
+                        new Chart(ctx, {
+                            type: 'pie',
+                            data: {
+                                labels: ['Malicious', 'Harmless', 'Suspicious', 'Undetected', 'Timeout'],
+                                datasets: [{
+                                    data: [${r.malicious}, ${r.harmless}, ${r.suspicious}, ${r.undetected}, ${r.timeout}],
+                                    backgroundColor: [
+                                        '#FF4C4C',
+                                        '#4CAF50',
+                                        '#FFC107',
+                                        '#9E9E9E',
+                                        '#FF00FF'
+                                    ],
+                                    borderWidth: 2,
+                                    borderColor: '#121212'
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: {
+                                    legend: { position: 'bottom', labels: { color: '#ffffff', font: { size: 12 } } },
+                                    tooltip: { bodyFont: { size: 12 } }
+                                },
+                                layout: {
+                                    padding: 16
+                                }
+                            }
+                        });
+                    </script>
+                </body>
+                </html>
+            """.trimIndent()
+
+                fileOut.writeText(htmlContent)
+            }
+
+            _vtScanDialog.value = false
+            Toast.makeText(
+                context,
+                "Scan Completed! Check DownloadScreen for results",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    fun cancelVirusTotalScan() {
+        val intent = Intent("CANCEL_VT_SCAN")
+        LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
+        _vtScanDialog.value = false
+    }
 
 
     fun quickScan() {
@@ -276,3 +445,7 @@ fun getFolderSize(file: File): Long {
     if (!file.exists()) return 0L
     return if (file.isFile) file.length() else file.listFiles()?.sumOf { getFolderSize(it) } ?: 0L
 }
+
+
+
+

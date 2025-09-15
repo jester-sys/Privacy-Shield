@@ -1,8 +1,12 @@
 package com.privacyshield.android.Component.Scanner
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Environment
 import android.provider.MediaStore
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -56,6 +60,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Screenshot
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material.icons.filled.VideoLibrary
@@ -71,6 +76,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
@@ -80,6 +86,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -92,17 +99,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import coil.compose.AsyncImage
 import com.privacyshield.android.Component.Scanner.QuickScan.CleanerViewModel
 import com.privacyshield.android.Component.Scanner.QuickScan.ScanningState
+import com.privacyshield.android.Component.Service.VirusTotalScanService
 import com.privacyshield.android.Component.Settings.Trash.TrashViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -142,16 +153,55 @@ fun FileScanScreen(
     val scanningState by viewModel.scanningState.collectAsState()
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showTrashDialog by remember { mutableStateOf(false) }
+    val vtProgress by viewModel.vtScanProgress.collectAsState()
+
+    val vtScanDialog by viewModel.vtScanDialog.collectAsState()
+    val vtScanProgress by viewModel.vtScanProgress.collectAsState()
 
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var selectedFiles by remember { mutableStateOf<Set<File>>(emptySet()) }
     var isGridView by remember { mutableStateOf(false) } // 🔹 NEW state
+    var context  = LocalContext.current
+
+    var showScanDialog by remember { mutableStateOf(false) }
+    var scanCompletedFiles by remember { mutableStateOf<List<File>>(emptyList()) }
+
+    DisposableEffect(Unit) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context?, intent: Intent?) {
+                when (intent?.action) {
+                    "VT_SCAN_PROGRESS" -> {
+                        val progress = intent.getIntExtra("progress", 0)
+                        viewModel.updateVTProgress(progress)
+                    }
+                    "VT_SCAN_COMPLETE" -> {
+                        val paths = intent.getStringArrayExtra("files") ?: emptyArray()
+                        scanCompletedFiles = paths.map { File(it) }
+                        showScanDialog = true
+                    }
+                }
+            }
+        }
+        val filter = IntentFilter().apply {
+            addAction("VT_SCAN_PROGRESS")
+            addAction("VT_SCAN_COMPLETE")
+        }
+        LocalBroadcastManager.getInstance(context).registerReceiver(receiver, filter)
+
+        onDispose {
+            LocalBroadcastManager.getInstance(context).unregisterReceiver(receiver)
+        }
+    }
+
 
     LaunchedEffect(Unit) {
         if (scanResult == null && scanningState == ScanningState.IDLE) {
             viewModel.quickScan()
         }
     }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+
 
     TrashDialogs(
         showTrashDialog = showTrashDialog,
@@ -420,7 +470,7 @@ fun FileScanScreen(
                                             color = Color(0xFF9C27B0),
                                              onClick = { selectedCategory = "Duplicate Files" }
                                         )
-                                    }
+                                      }
                                 }
 
                                 Spacer(Modifier.height(8.dp))
@@ -600,8 +650,51 @@ fun FileScanScreen(
                             fontWeight = FontWeight.SemiBold
                         )
                     }
+
+                    Button(
+                        onClick = {
+                            if (selectedFiles.size > 5) {
+                                Toast.makeText(context, "Maximum 5 files allowed!", Toast.LENGTH_SHORT).show()
+                            } else {
+                                startBackgroundScan(selectedFiles, context) // service start
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3DDC84)),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.weight(1f).height(55.dp)
+                    ) {
+                        Icon(Icons.Default.Shield, contentDescription = "Scan", tint = Color.White)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Scan Files", color = Color.White, fontSize = 15.sp)
+                    }
+
+
                 }
             }
+
+            // 🔹 Dialog after scan complete
+            if (showScanDialog) {
+                AlertDialog(
+                    onDismissRequest = { showScanDialog = false },
+                    title = { Text("Scan Completed") },
+                    text = { Text("Do you want to download detailed report?") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.scanFilesWithVirusTotal(scanCompletedFiles.toSet())
+                            showScanDialog = false
+                        }) {
+                            Text("Download")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showScanDialog = false }) {
+                            Text("Close")
+                        }
+                    }
+                )
+            }
+
+        }
 
             if (showDeleteDialog) {
                 AlertDialog(
@@ -636,8 +729,13 @@ fun FileScanScreen(
 
         }
     }
-}
 
+fun startBackgroundScan(files: Set<File>, context: Context) {
+    val serviceIntent = Intent(context, VirusTotalScanService::class.java).apply {
+        putExtra("files", files.map { it.absolutePath }.toTypedArray())
+    }
+    ContextCompat.startForegroundService(context, serviceIntent)
+}
 
 // Updated SectionHeader with better spacing
 @Composable
@@ -1135,3 +1233,5 @@ fun TrashDialogs(
         )
     }
 }
+
+
