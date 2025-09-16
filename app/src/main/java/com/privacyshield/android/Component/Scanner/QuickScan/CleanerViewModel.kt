@@ -7,19 +7,24 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.privacyshield.android.Component.Scanner.QuickScanResult
+import com.privacyshield.android.Component.Service.VirusTotalScanService
+import com.privacyshield.android.Component.VirusTotal.VirusTotalManager
 import com.privacyshield.android.Component.VirusTotal.VirusTotalRepository
 import com.privacyshield.android.Component.VirusTotal.VirusTotalResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -33,16 +38,32 @@ import javax.inject.Inject
 @HiltViewModel
 class CleanerViewModel @Inject constructor(
     private val virusTotalRepo: VirusTotalRepository,
+    private val virusTotalManager: VirusTotalManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
+
+    private var hasScanned = false
+
+
+
+    private var scanJob: Job? = null
+
+    // State flows
     private val _scanResult = MutableStateFlow<QuickScanResult?>(null)
     val scanResult: StateFlow<QuickScanResult?> = _scanResult
 
     private val _scanProgress = MutableStateFlow(0)
     val scanProgress: StateFlow<Int> = _scanProgress
-    private var hasScanned = false
 
+    private val _totalFiles = MutableStateFlow(0)
+    val totalFiles: StateFlow<Int> = _totalFiles
+
+    private val _scannedFiles = MutableStateFlow(0)
+    val scannedFiles: StateFlow<Int> = _scannedFiles
+
+    private val _isScanning = MutableStateFlow(false)
+    val isScanning: StateFlow<Boolean> = _isScanning
 
     private val _scanningState = MutableStateFlow(ScanningState.IDLE)
     val scanningState: StateFlow<ScanningState> = _scanningState
@@ -53,10 +74,63 @@ class CleanerViewModel @Inject constructor(
     private val _vtScanDialog = MutableStateFlow(false)
     val vtScanDialog: StateFlow<Boolean> = _vtScanDialog
 
+    private val _scanCompleted = MutableStateFlow(false)
+    val scanCompleted: StateFlow<Boolean> = _scanCompleted
 
-    // ViewModel me
+    private val _currentScanFile = MutableStateFlow<String?>(null)
+    val currentScanFile: StateFlow<String?> = _currentScanFile
+
+    // Add this new state for dialog visibility
+    private val _showScanDialog = MutableStateFlow(false)
+    val showScanDialog: StateFlow<Boolean> = _showScanDialog
+
+    fun setShowScanDialog(show: Boolean) {
+        _showScanDialog.value = show
+    }
+    fun updateCurrentScanFile(fileName: String) {
+        _currentScanFile.value = fileName
+    }
+
+
+    fun startScan(files: List<File>, context: Context) {
+        _totalFiles.value = files.size
+        _scannedFiles.value = 0
+        _scanCompleted.value = false
+        _isScanning.value = true
+        _showScanDialog.value = true
+        _vtScanProgress.value = 0
+
+        // Start background scan
+        startBackgroundScan(files, context)
+    }
+
+    fun startBackgroundScan(files: List<File>, context: Context) {
+        val serviceIntent = Intent(context, VirusTotalScanService::class.java).apply {
+            putExtra("files", files.map { it.absolutePath }.toTypedArray())
+        }
+        ContextCompat.startForegroundService(context, serviceIntent)
+    }
+
     fun updateVTProgress(progress: Int) {
         _vtScanProgress.value = progress
+    }
+
+    fun updateScanProgress(current: Int, total: Int) {
+        _scannedFiles.value = current
+        _totalFiles.value = total
+    }
+
+    fun markScanComplete() {
+        _scanCompleted.value = true
+        _isScanning.value = false
+    }
+
+    fun cancelScan() {
+        _isScanning.value = false
+        _showScanDialog.value = false
+        // Broadcast to service to stop
+        val intent = Intent("CANCEL_VT_SCAN")
+        LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
     }
 
     fun scanFilesWithVirusTotal(files: Set<File>) {

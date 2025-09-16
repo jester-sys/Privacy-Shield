@@ -39,4 +39,13 @@ class VirusTotalRepository @Inject constructor(private val api: VirusTotalApi) {
             rawJson = reportJson
         )
     }
+    suspend fun scanFilesWithVirusTotal(files: Set<File>): List<VirusTotalResult> {
+        val results = mutableListOf<VirusTotalResult>()
+        for (file in files) {
+            val result = scanFile(file)
+            results.add(result)
+        }
+        return results
+    }
+
 }
