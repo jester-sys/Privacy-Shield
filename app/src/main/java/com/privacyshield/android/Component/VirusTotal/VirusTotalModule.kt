@@ -13,6 +13,6 @@ object VirusTotalModule {
     @Provides
     @Singleton
     fun provideVirusTotalApi(): VirusTotalApi {
-        return VirusTotalApiImpl("472d41dd279f8a5dfaf439beb1108e5e921022388fc7c087b8e74d81f28bbf9a") // yaha tumhara actual VirusTotalApi implementation
+        return VirusTotalApiImpl("458fae720537c3b106bd159c1e650373b8f02a7c838aa8bacc5defc8d59614ef") // yaha tumhara actual VirusTotalApi implementation
     }
 }

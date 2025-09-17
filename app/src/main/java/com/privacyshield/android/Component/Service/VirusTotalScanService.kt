@@ -1,6 +1,7 @@
 package com.privacyshield.android.Component.Service
 
 import android.annotation.SuppressLint
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -22,6 +23,7 @@ import com.privacyshield.android.Component.VirusTotal.VirusTotalManager
 import com.privacyshield.android.Component.VirusTotal.VirusTotalRepository
 import com.privacyshield.android.Component.VirusTotal.VirusTotalResult
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
@@ -40,6 +42,7 @@ class VirusTotalScanService : LifecycleService() {
     private val notificationId = 1001
     private val channelId = "vt_scan_channel"
     private var isCancelled = false
+    private val results = mutableListOf<VirusTotalResult>()
 
     private val cancelReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -47,6 +50,10 @@ class VirusTotalScanService : LifecycleService() {
                 isCancelled = true
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
+
+                // Send cancellation broadcast
+                val cancelIntent = Intent("VT_SCAN_CANCELLED")
+                sendBroadcast(cancelIntent)
             }
         }
     }
@@ -54,12 +61,6 @@ class VirusTotalScanService : LifecycleService() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        val filter = IntentFilter("CANCEL_VT_SCAN")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(cancelReceiver, filter, RECEIVER_NOT_EXPORTED)
-        } else {
-            registerReceiver(cancelReceiver, filter, RECEIVER_NOT_EXPORTED)
-        }
     }
 
     override fun onDestroy() {
@@ -67,50 +68,81 @@ class VirusTotalScanService : LifecycleService() {
         try {
             unregisterReceiver(cancelReceiver)
         } catch (e: Exception) {
-            // Receiver was not registered, ignore
+            // Ignore if not registered
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
         val paths = intent?.getStringArrayExtra("files") ?: emptyArray()
-        val mode = intent?.getStringExtra("mode") ?: "SCAN"
-
-        val files = paths.map { File(it) }.filter { it.exists() && it.isFile }.toSet()
+        val scanMode = intent?.getStringExtra("scanMode") ?: "SINGLE" // ✅ Scan mode get karo
+        val files = paths.map { File(it) }.filter { it.exists() && it.isFile && it.length() <= 32 * 1024 * 1024 }
 
         if (files.isEmpty()) {
             stopSelf()
             return START_NOT_STICKY
         }
 
-        updateNotification(0, if (mode == "SCAN") "Starting scan..." else "Starting download...")
+        // Register cancel receiver
+        val filter = IntentFilter("CANCEL_VT_SCAN")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            registerReceiver(cancelReceiver, filter, RECEIVER_NOT_EXPORTED)
+        }
 
-        lifecycleScope.launch(Dispatchers.IO) {
+        // Create notification and start foreground service
+        val notification = createNotification(0, "Starting scan...")
+        startForeground(notificationId, notification)
+
+        // Start scanning in background
+        CoroutineScope(Dispatchers.IO).launch {
             try {
-                if (mode == "SCAN") {
-                    startScan(files)
+                // ✅ YAHAN DECIDE KARO KAUNSA FUNCTION CALL KARNA HAI
+                if (scanMode == "BATCH") {
+                    // ✅ scanFilesWithVirusTotal CALL KARO
+                    virusTotalManager.scanFilesWithVirusTotal(files.toSet()) { progress, status ->
+                        // Progress update bhejo
+                        val progressIntent = Intent("VT_SCAN_PROGRESS").apply {
+                            putExtra("progress", progress)
+                            putExtra("currentFile", progress) // Approximate current file
+                            putExtra("totalFiles", 100) // Total as percentage
+                            putExtra("fileName", status)
+                            putExtra("scanMode", scanMode)
+                        }
+                        sendBroadcast(progressIntent)
+                    }
                 } else {
-                    virusTotalManager.scanFilesWithVirusTotal(files)
+                    // ✅ NORMAL scanFiles FUNCTION CALL KARO
+                    scanFiles(files)
                 }
 
-                // Send completion broadcast
-                val completeIntent = Intent("VT_SCAN_COMPLETE").apply {
-                    putExtra("files", paths)
-                }
-                LocalBroadcastManager.getInstance(this@VirusTotalScanService).sendBroadcast(completeIntent)
+                if (!isCancelled && results.isNotEmpty()) {
+                    // Save results
+                    virusTotalManager.saveResultsToDownloads(results)
 
+                    // Send completion broadcast
+                    val completeIntent = Intent("VT_SCAN_COMPLETE").apply {
+                        putExtra("files", paths)
+                        putExtra("scanMode", scanMode) // ✅ Scan mode bhi bhejo
+                    }
+                    sendBroadcast(completeIntent)
+                }
             } catch (e: Exception) {
-                Log.e("VirusTotalScanService", "Error during scan: ${e.message}")
-
-                // Send error broadcast
-                val errorIntent = Intent("VT_SCAN_ERROR").apply {
-                    putExtra("error", e.message ?: "Unknown error")
+                if (!isCancelled) {
+                    Log.e("VirusTotalScanService", "Error: ${e.message}")
+                    val errorIntent = Intent("VT_SCAN_ERROR").apply {
+                        putExtra("error", e.message ?: "Unknown error")
+                        putExtra("scanMode", scanMode) // ✅ Scan mode bhi bhejo
+                    }
+                    sendBroadcast(errorIntent)
                 }
-                LocalBroadcastManager.getInstance(this@VirusTotalScanService).sendBroadcast(errorIntent)
-
-                // Show error in notification
-                updateNotificationWithError(e.message ?: "Network error")
             } finally {
+                if (!isCancelled) {
+                    // Send scan finished signal (even if error)
+                    val finishedIntent = Intent("VT_SCAN_FINISHED").apply {
+                        putExtra("scanMode", scanMode) // ✅ Scan mode bhi bhejo
+                    }
+                    sendBroadcast(finishedIntent)
+                }
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
@@ -118,91 +150,76 @@ class VirusTotalScanService : LifecycleService() {
 
         return START_NOT_STICKY
     }
-
-    private suspend fun startScan(files: Set<File>) {
-        val results = mutableListOf<VirusTotalResult>()
-
+    private suspend fun scanFiles(files: List<File>) {
         for ((index, file) in files.withIndex()) {
-            if (isCancelled) return
+            if (isCancelled) break
 
-            // Calculate accurate progress percentage
-            val progress = ((index) * 100f / files.size).toInt()
+            // Calculate progress
+            val progress = (index * 100 / files.size)
 
-            // Update notification with current file name
-            updateNotification(
-                progress = progress,
-                text = "Scanning ${file.name}..."
-            )
+            // Update notification
+            updateNotification(progress, "Scanning ${file.name}")
 
-            // Send progress update using LocalBroadcastManager
+            // Send progress update
             val progressIntent = Intent("VT_SCAN_PROGRESS").apply {
                 putExtra("progress", progress)
                 putExtra("currentFile", index + 1)
                 putExtra("totalFiles", files.size)
                 putExtra("fileName", file.name)
             }
-            LocalBroadcastManager.getInstance(this@VirusTotalScanService).sendBroadcast(progressIntent)
+            sendBroadcast(progressIntent)
 
-            // Scan the file with retry logic
             try {
-                val result = virusTotalRepo.scanFileWithRetry(file, maxRetries = 3)
+                // Scan the file
+                val result = virusTotalRepo.scanFile(file)
                 results.add(result)
 
                 // Update progress after successful scan
-                val newProgress = ((index + 1) * 100f / files.size).toInt()
+                val newProgress = ((index + 1) * 100 / files.size)
                 updateNotification(newProgress, "Scanned ${file.name}")
 
+                // Send progress update
+                val newProgressIntent = Intent("VT_SCAN_PROGRESS").apply {
+                    putExtra("progress", newProgress)
+                    putExtra("currentFile", index + 1)
+                    putExtra("totalFiles", files.size)
+                    putExtra("fileName", file.name)
+                }
+                sendBroadcast(newProgressIntent)
             } catch (e: Exception) {
-                Log.e("VirusTotalScanService", "Error scanning file ${file.name}: ${e.message}")
-
-                // Send error for this specific file
+                Log.e("VirusTotalScanService", "Error scanning ${file.name}: ${e.message}")
+                // Send error for this file but continue with others
                 val errorIntent = Intent("VT_FILE_SCAN_ERROR").apply {
                     putExtra("fileName", file.name)
                     putExtra("error", e.message ?: "Unknown error")
                 }
-                LocalBroadcastManager.getInstance(this@VirusTotalScanService).sendBroadcast(errorIntent)
-
-                // Continue with next file instead of stopping
-                continue
+                sendBroadcast(errorIntent)
             }
-        }
-
-        // Save results after all files are scanned
-        if (results.isNotEmpty() && !isCancelled) {
-            virusTotalManager.saveResultsToDownloads(results)
         }
     }
 
-    private fun updateNotification(progress: Int, text: String) {
+    private fun createNotification(progress: Int, text: String): Notification {
         val cancelIntent = Intent("CANCEL_VT_SCAN")
         val cancelPending = PendingIntent.getBroadcast(
             this, 0, cancelIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val builder = NotificationCompat.Builder(this, channelId)
+        return NotificationCompat.Builder(this, channelId)
             .setContentTitle("VirusTotal Scan")
-            .setContentText("$text $progress%")
-            .setSmallIcon(android.R.drawable.stat_sys_download)
+            .setContentText("$text - $progress%")
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setProgress(100, progress, false)
             .addAction(android.R.drawable.ic_delete, "Cancel", cancelPending)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .setAutoCancel(false)
-
-        startForeground(notificationId, builder.build())
+            .build()
     }
 
-    private fun updateNotificationWithError(error: String) {
-        val builder = NotificationCompat.Builder(this, channelId)
-            .setContentTitle("VirusTotal Scan Failed")
-            .setContentText("Error: $error")
-            .setSmallIcon(android.R.drawable.stat_sys_warning)
-            .setOngoing(false)
-            .setAutoCancel(true)
-
+    private fun updateNotification(progress: Int, text: String) {
+        val notification = createNotification(progress, text)
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(notificationId + 1, builder.build())
+        notificationManager.notify(notificationId, notification)
     }
 
     private fun createNotificationChannel() {

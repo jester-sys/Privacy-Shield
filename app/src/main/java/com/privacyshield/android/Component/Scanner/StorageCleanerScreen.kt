@@ -82,6 +82,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -102,6 +103,7 @@ import com.privacyshield.android.Component.Scanner.QuickScan.CleanerViewModel
 import com.privacyshield.android.Component.Scanner.QuickScan.ScanningState
 import com.privacyshield.android.Component.Service.VirusTotalScanService
 import com.privacyshield.android.Component.Settings.Trash.TrashViewModel
+import kotlinx.coroutines.delay
 import java.io.File
 
 // Update the QuickScanResult data class to include all new categories
@@ -149,6 +151,19 @@ fun FileScanScreen(
     val currentScanFile by viewModel.currentScanFile.collectAsState()
 
 
+    // ✅ Add this to handle scan completion
+    LaunchedEffect(Unit) {
+        snapshotFlow { scanCompleted }
+            .collect { completed ->
+                if (completed) {
+                    // Auto-close dialog after 2 seconds when scan completes
+                    delay(2000)
+                    viewModel.setShowScanDialog(false)
+                    viewModel.resetScanState()
+                }
+            }
+    }
+
     // Broadcast receiver for scan updates
     DisposableEffect(Unit) {
         val receiver = object : BroadcastReceiver() {
@@ -178,10 +193,25 @@ fun FileScanScreen(
                     "VT_SCAN_ERROR" -> {
                         val error = intent.getStringExtra("error")
                         viewModel.setShowScanDialog(false)
+                        viewModel.resetScanState()
                         Toast.makeText(
                             context,
                             "Scan failed: $error",
                             Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    "VT_SCAN_FINISHED" -> {
+                        // This will be called whether scan completed or was cancelled
+                        viewModel.setShowScanDialog(false)
+                        viewModel.resetScanState()
+                    }
+                    "VT_SCAN_CANCELLED" -> {
+                        viewModel.setShowScanDialog(false)
+                        viewModel.resetScanState()
+                        Toast.makeText(
+                            context,
+                            "Scan cancelled",
+                            Toast.LENGTH_SHORT
                         ).show()
                     }
                 }
@@ -192,8 +222,10 @@ fun FileScanScreen(
             addAction("VT_SCAN_PROGRESS")
             addAction("VT_SCAN_COMPLETE")
             addAction("VT_SCAN_ERROR")
+            addAction("VT_SCAN_FINISHED")
+            addAction("VT_SCAN_CANCELLED")
         }
-        context.registerReceiver(receiver, filter, android.content.Context.RECEIVER_NOT_EXPORTED)
+        context.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
 
         onDispose {
             try {
@@ -666,11 +698,11 @@ fun FileScanScreen(
 
                     Button(
                         onClick = {
-                            val filesToScan = selectedFiles.filter { it.isFile && it.exists() }
+                            val filesToScan = selectedFiles.filter { it.isFile && it.exists() && it.length() <= 32 * 1024 * 1024 }
                             if (filesToScan.isEmpty()) {
                                 Toast.makeText(
                                     context,
-                                    "No valid files selected!",
+                                    "No valid files selected or files too large (max 32MB)!",
                                     Toast.LENGTH_SHORT
                                 ).show()
                             } else if (filesToScan.size > 5) {
@@ -680,6 +712,7 @@ fun FileScanScreen(
                                     Toast.LENGTH_SHORT
                                 ).show()
                             } else {
+                                viewModel.resetScanState() // ✅ Reset state before new scan
                                 viewModel.startScan(filesToScan, context)
                             }
                         },
@@ -694,14 +727,13 @@ fun FileScanScreen(
                         Text("Scan Files", color = Color.White, fontSize = 15.sp)
                     }
 
-                    // Scan button
-                    // Scan dialog - Now controlled by ViewModel state
                     if (showScanDialog) {
                         AlertDialog(
                             onDismissRequest = {
                                 // Only allow dismiss if scan is completed
                                 if (scanCompleted) {
                                     viewModel.setShowScanDialog(false)
+                                    viewModel.resetScanState()
                                 }
                             },
                             title = {
@@ -735,11 +767,15 @@ fun FileScanScreen(
                                 }
                             },
                             confirmButton = {
+                                // CLOSE button - only closes dialog
                                 TextButton(
-                                    onClick = { viewModel.setShowScanDialog(false) },
-                                    enabled = scanCompleted
+                                    onClick = {
+                                        viewModel.setShowScanDialog(false)
+                                        viewModel.resetScanState()
+                                    },
+                                    enabled = scanCompleted || !scanCompleted // Always enabled
                                 ) {
-                                    Text("Close")
+                                    Text(if (scanCompleted) "Close" else "Dismiss")
                                 }
                             },
                             dismissButton = {
@@ -747,12 +783,14 @@ fun FileScanScreen(
                                     TextButton(onClick = {
                                         viewModel.cancelScan()
                                     }) {
-                                        Text("Cancel")
+                                        Text("Cancel Scan")
                                     }
                                 }
                             }
                         )
                     }
+                }
+
                 }
             }
 
@@ -791,7 +829,7 @@ fun FileScanScreen(
 
 
         }
-    }
+
 
 
 

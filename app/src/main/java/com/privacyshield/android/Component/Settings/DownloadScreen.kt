@@ -51,12 +51,16 @@ import java.io.File
 
 @Composable
 fun DownloadScreen(context: Context = LocalContext.current) {
-    val scanFolder = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "VT_Scan_Results")
+    val scanFolder = File(
+        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+        "VT_Scan_Results"
+    )
     val scanFiles = remember { mutableStateOf<List<File>>(emptyList()) }
 
     LaunchedEffect(Unit) {
         if (scanFolder.exists()) {
-            scanFiles.value = scanFolder.listFiles()?.sortedByDescending { it.lastModified() } ?: emptyList()
+            scanFiles.value =
+                scanFolder.listFiles()?.sortedByDescending { it.lastModified() } ?: emptyList()
         }
     }
 
@@ -80,13 +84,28 @@ fun DownloadScreen(context: Context = LocalContext.current) {
                                         "${context.packageName}.provider",
                                         file
                                     )
-                                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                                        setDataAndType(uri, "text/plain")
-                                        flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+
+                                    // ✅ Detect MIME type based on extension
+                                    val mimeType = when {
+                                        file.name.endsWith(".html", true) -> "text/html"
+                                        file.name.endsWith(".txt", true) -> "text/plain"
+                                        file.name.endsWith(".pdf", true) -> "application/pdf"
+                                        else -> "text/plain"
                                     }
+
+                                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                                        setDataAndType(uri, mimeType)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        addCategory(Intent.CATEGORY_BROWSABLE) // browser handle karega
+                                    }
+
                                     context.startActivity(intent)
                                 } catch (e: Exception) {
-                                    Toast.makeText(context, "Cannot open file: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        "Cannot open file: ${e.message}",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                             },
                         colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
@@ -95,7 +114,11 @@ fun DownloadScreen(context: Context = LocalContext.current) {
                             modifier = Modifier.padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Description, contentDescription = null, tint = Color.White)
+                            Icon(
+                                Icons.Default.Description,
+                                contentDescription = null,
+                                tint = Color.White
+                            )
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
                                 Text(file.name, color = Color.White)

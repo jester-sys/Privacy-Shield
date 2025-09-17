@@ -41,15 +41,10 @@ class CleanerViewModel @Inject constructor(
     private val virusTotalManager: VirusTotalManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
-
-
     private var hasScanned = false
-
-
-
     private var scanJob: Job? = null
 
-    // State flows
+
     private val _scanResult = MutableStateFlow<QuickScanResult?>(null)
     val scanResult: StateFlow<QuickScanResult?> = _scanResult
 
@@ -87,9 +82,11 @@ class CleanerViewModel @Inject constructor(
     fun setShowScanDialog(show: Boolean) {
         _showScanDialog.value = show
     }
+
     fun updateCurrentScanFile(fileName: String) {
         _currentScanFile.value = fileName
     }
+
 
 
     fun startScan(files: List<File>, context: Context) {
@@ -99,17 +96,17 @@ class CleanerViewModel @Inject constructor(
         _isScanning.value = true
         _showScanDialog.value = true
         _vtScanProgress.value = 0
-
-        // Start background scan
         startBackgroundScan(files, context)
     }
 
-    fun startBackgroundScan(files: List<File>, context: Context) {
+    fun startBackgroundScan(files: List<File>, context: Context, scanMode: String = "SINGLE") {
         val serviceIntent = Intent(context, VirusTotalScanService::class.java).apply {
             putExtra("files", files.map { it.absolutePath }.toTypedArray())
+            putExtra("scanMode", scanMode) // ✅ Yahaan scanMode pass karo
         }
         ContextCompat.startForegroundService(context, serviceIntent)
     }
+
 
     fun updateVTProgress(progress: Int) {
         _vtScanProgress.value = progress
@@ -125,14 +122,26 @@ class CleanerViewModel @Inject constructor(
         _isScanning.value = false
     }
 
+
     fun cancelScan() {
         _isScanning.value = false
         _showScanDialog.value = false
-        // Broadcast to service to stop
+
+
+        // Send broadcast to cancel the service
         val intent = Intent("CANCEL_VT_SCAN")
-        LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
+        context.sendBroadcast(intent)
     }
 
+    fun resetScanState() {
+        _scanCompleted.value = false
+        _isScanning.value = false
+        _showScanDialog.value = false
+        _scannedFiles.value = 0
+        _totalFiles.value = 0
+        _vtScanProgress.value = 0
+        _currentScanFile.value = null
+    }
     fun scanFilesWithVirusTotal(files: Set<File>) {
         viewModelScope.launch {
             _vtScanDialog.value = true
