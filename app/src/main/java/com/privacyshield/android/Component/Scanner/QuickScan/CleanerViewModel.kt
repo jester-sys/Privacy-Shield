@@ -39,7 +39,8 @@ import javax.inject.Inject
 class CleanerViewModel @Inject constructor(
     private val virusTotalRepo: VirusTotalRepository,
     private val virusTotalManager: VirusTotalManager,
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+
 ) : ViewModel() {
     private var hasScanned = false
     private var scanJob: Job? = null
@@ -126,11 +127,8 @@ class CleanerViewModel @Inject constructor(
     fun cancelScan() {
         _isScanning.value = false
         _showScanDialog.value = false
-
-
-        // Send broadcast to cancel the service
-        val intent = Intent("CANCEL_VT_SCAN")
-        context.sendBroadcast(intent)
+        val cancelIntent = Intent("CANCEL_VT_SCAN")
+        context.sendBroadcast(cancelIntent)
     }
 
     fun resetScanState() {

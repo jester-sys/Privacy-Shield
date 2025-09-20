@@ -208,12 +208,17 @@ fun FileScanScreen(
                     "VT_SCAN_CANCELLED" -> {
                         viewModel.setShowScanDialog(false)
                         viewModel.resetScanState()
+                        Toast.makeText(context, "Scan cancelled", Toast.LENGTH_SHORT).show()
+                    }
+                    "VT_SCAN_COMPLETE" -> {
+                        viewModel.markScanComplete()
                         Toast.makeText(
                             context,
-                            "Scan cancelled",
-                            Toast.LENGTH_SHORT
+                            "Scan completed! Results saved to Downloads/VT_Scan_Results",
+                            Toast.LENGTH_LONG
                         ).show()
                     }
+
                 }
             }
         }
@@ -767,7 +772,7 @@ fun FileScanScreen(
                                 }
                             },
                             confirmButton = {
-                                // CLOSE button - only closes dialog
+
                                 TextButton(
                                     onClick = {
                                         viewModel.setShowScanDialog(false)
@@ -778,10 +783,11 @@ fun FileScanScreen(
                                     Text(if (scanCompleted) "Close" else "Dismiss")
                                 }
                             },
+                            // In your AlertDialog
                             dismissButton = {
                                 if (!scanCompleted) {
                                     TextButton(onClick = {
-                                        viewModel.cancelScan()
+                                        viewModel.cancelScan() // This should send the cancel broadcast
                                     }) {
                                         Text("Cancel Scan")
                                     }

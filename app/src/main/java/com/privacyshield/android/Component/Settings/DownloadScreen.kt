@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import android.util.Log
 import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -48,7 +49,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.privacyshield.android.Component.Scanner.QuickScan.CleanerViewModel
 import java.io.File
-
 @Composable
 fun DownloadScreen(context: Context = LocalContext.current) {
     val scanFolder = File(
@@ -59,10 +59,19 @@ fun DownloadScreen(context: Context = LocalContext.current) {
 
     LaunchedEffect(Unit) {
         if (scanFolder.exists()) {
-            scanFiles.value =
-                scanFolder.listFiles()?.sortedByDescending { it.lastModified() } ?: emptyList()
+            val files = scanFolder
+                .listFiles()
+                ?.filter { it.isFile }   // ✅ only files, no folders
+                ?.sortedByDescending { it.lastModified() }
+                ?: emptyList()
+
+            Log.d("DownloadScreen", "Scan folder exists: ${scanFolder.absolutePath}, files=${files.size}")
+            scanFiles.value = files
+        } else {
+            Log.d("DownloadScreen", "Scan folder does not exist: ${scanFolder.absolutePath}")
         }
     }
+
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text("VT Scan Results", fontSize = 20.sp, color = Color.White)
@@ -79,11 +88,14 @@ fun DownloadScreen(context: Context = LocalContext.current) {
                             .padding(vertical = 4.dp)
                             .clickable {
                                 try {
+                                    Log.d("DownloadScreen", "Clicked file: ${file.absolutePath}")
+
                                     val uri = FileProvider.getUriForFile(
                                         context,
                                         "${context.packageName}.provider",
                                         file
                                     )
+                                    Log.d("DownloadScreen", "Generated URI: $uri")
 
                                     // ✅ Detect MIME type based on extension
                                     val mimeType = when {
@@ -92,15 +104,26 @@ fun DownloadScreen(context: Context = LocalContext.current) {
                                         file.name.endsWith(".pdf", true) -> "application/pdf"
                                         else -> "text/plain"
                                     }
+                                    Log.d("DownloadScreen", "Detected mimeType: $mimeType")
 
                                     val intent = Intent(Intent.ACTION_VIEW).apply {
                                         setDataAndType(uri, mimeType)
                                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                        addCategory(Intent.CATEGORY_BROWSABLE) // browser handle karega
+                                        if (mimeType == "text/html") {
+                                            addCategory(Intent.CATEGORY_BROWSABLE)
+                                        }
                                     }
 
-                                    context.startActivity(intent)
+                                    // ✅ Check if activity exists
+                                    if (intent.resolveActivity(context.packageManager) != null) {
+                                        context.startActivity(intent)
+                                        Log.d("DownloadScreen", "Intent started successfully.")
+                                    } else {
+                                        Log.e("DownloadScreen", "No app found to open this file: ${file.name}")
+                                        Toast.makeText(context, "No app found to open ${file.name}", Toast.LENGTH_SHORT).show()
+                                    }
                                 } catch (e: Exception) {
+                                    Log.e("DownloadScreen", "Error opening file: ${file.absolutePath}, error=${e.message}", e)
                                     Toast.makeText(
                                         context,
                                         "Cannot open file: ${e.message}",
@@ -131,4 +154,3 @@ fun DownloadScreen(context: Context = LocalContext.current) {
         }
     }
 }
-

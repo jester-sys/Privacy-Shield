@@ -12,7 +12,9 @@ import android.content.IntentFilter
 import android.os.Build
 import android.os.Environment
 import android.util.Log
+import kotlinx.coroutines.ensureActive
 import androidx.annotation.RequiresApi
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.LifecycleService
@@ -22,15 +24,21 @@ import com.privacyshield.android.Component.Scanner.QuickScan.CleanerViewModel
 import com.privacyshield.android.Component.VirusTotal.VirusTotalManager
 import com.privacyshield.android.Component.VirusTotal.VirusTotalRepository
 import com.privacyshield.android.Component.VirusTotal.VirusTotalResult
+import com.privacyshield.android.MainActivity
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 
 
 @AndroidEntryPoint
@@ -41,26 +49,16 @@ class VirusTotalScanService : LifecycleService() {
 
     private val notificationId = 1001
     private val channelId = "vt_scan_channel"
-    private var isCancelled = false
+    private val isCancelled = AtomicBoolean(false)
     private val results = mutableListOf<VirusTotalResult>()
-
-    private val cancelReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == "CANCEL_VT_SCAN") {
-                isCancelled = true
-                stopForeground(STOP_FOREGROUND_REMOVE)
-                stopSelf()
-
-                // Send cancellation broadcast
-                val cancelIntent = Intent("VT_SCAN_CANCELLED")
-                sendBroadcast(cancelIntent)
-            }
-        }
-    }
+    private var scanJob: Job? = null
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        // Create initial notification immediately in onCreate
+        val initialNotification = createNotification("Starting scan...", "Preparing files")
+        startForeground(notificationId, initialNotification)
     }
 
     override fun onDestroy() {
@@ -72,10 +70,15 @@ class VirusTotalScanService : LifecycleService() {
         }
     }
 
+    @SuppressLint("NewApi")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
+
+        // Update notification immediately to show we're processing
+        updateNotification("Processing", "Starting scan...")
+
         val paths = intent?.getStringArrayExtra("files") ?: emptyArray()
-        val scanMode = intent?.getStringExtra("scanMode") ?: "SINGLE" // ✅ Scan mode get karo
+        val scanMode = intent?.getStringExtra("scanMode") ?: "SINGLE"
         val files = paths.map { File(it) }.filter { it.exists() && it.isFile && it.length() <= 32 * 1024 * 1024 }
 
         if (files.isEmpty()) {
@@ -85,64 +88,76 @@ class VirusTotalScanService : LifecycleService() {
 
         // Register cancel receiver
         val filter = IntentFilter("CANCEL_VT_SCAN")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            registerReceiver(cancelReceiver, filter, RECEIVER_NOT_EXPORTED)
+        try {
+            registerReceiver(cancelReceiver, filter, RECEIVER_EXPORTED)
+        } catch (e: Exception) {
+            // Ignore if already registered
         }
 
-        // Create notification and start foreground service
-        val notification = createNotification(0, "Starting scan...")
-        startForeground(notificationId, notification)
-
-        // Start scanning in background
-        CoroutineScope(Dispatchers.IO).launch {
+        // Start scanning in background - SINGLE COROUTINE JOB
+        scanJob = CoroutineScope(Dispatchers.IO).launch {
             try {
-                // ✅ YAHAN DECIDE KARO KAUNSA FUNCTION CALL KARNA HAI
                 if (scanMode == "BATCH") {
-                    // ✅ scanFilesWithVirusTotal CALL KARO
-                    virusTotalManager.scanFilesWithVirusTotal(files.toSet()) { progress, status ->
-                        // Progress update bhejo
-                        val progressIntent = Intent("VT_SCAN_PROGRESS").apply {
-                            putExtra("progress", progress)
-                            putExtra("currentFile", progress) // Approximate current file
-                            putExtra("totalFiles", 100) // Total as percentage
-                            putExtra("fileName", status)
-                            putExtra("scanMode", scanMode)
-                        }
-                        sendBroadcast(progressIntent)
-                    }
+                    virusTotalManager.scanFilesWithVirusTotal(
+                        files.toSet(),
+                        applicationContext,
+                        { progress, status ->
+                            val progressIntent = Intent("VT_SCAN_PROGRESS").apply {
+                                putExtra("progress", progress)
+                                putExtra("currentFile", status)
+                                putExtra("totalFiles", files.size)
+                                putExtra("scanMode", scanMode)
+                            }
+                            sendBroadcast(progressIntent)
+                            updateNotification(status, "Scanning...")
+                        },
+                        { isCancelled.get() } // Cancellation check
+                    )
                 } else {
-                    // ✅ NORMAL scanFiles FUNCTION CALL KARO
                     scanFiles(files)
                 }
 
-                if (!isCancelled && results.isNotEmpty()) {
-                    // Save results
-                    virusTotalManager.saveResultsToDownloads(results)
+                // Save results only if not cancelled
+                if (!isCancelled.get() && results.isNotEmpty()) {
+                    virusTotalManager.saveResultsToDownloads(results, applicationContext)
+
+                    // Show completion notification
+                    val completedNotification = createCompletionNotification()
+                    withContext(Dispatchers.Main) {
+                        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                        nm.notify(notificationId + 1, completedNotification)
+                    }
 
                     // Send completion broadcast
                     val completeIntent = Intent("VT_SCAN_COMPLETE").apply {
                         putExtra("files", paths)
-                        putExtra("scanMode", scanMode) // ✅ Scan mode bhi bhejo
+                        putExtra("scanMode", scanMode)
                     }
                     sendBroadcast(completeIntent)
                 }
+            } catch (e: CancellationException) {
+                Log.d("VirusTotalScanService", "Scan was cancelled")
+                // Show cancelled notification
+                showCancelledNotification()
             } catch (e: Exception) {
-                if (!isCancelled) {
+                if (!isCancelled.get()) {
                     Log.e("VirusTotalScanService", "Error: ${e.message}")
                     val errorIntent = Intent("VT_SCAN_ERROR").apply {
                         putExtra("error", e.message ?: "Unknown error")
-                        putExtra("scanMode", scanMode) // ✅ Scan mode bhi bhejo
+                        putExtra("scanMode", scanMode)
                     }
                     sendBroadcast(errorIntent)
+                } else {
+                    // Show cancelled notification if cancelled during error
+                    showCancelledNotification()
                 }
             } finally {
-                if (!isCancelled) {
-                    // Send scan finished signal (even if error)
-                    val finishedIntent = Intent("VT_SCAN_FINISHED").apply {
-                        putExtra("scanMode", scanMode) // ✅ Scan mode bhi bhejo
-                    }
-                    sendBroadcast(finishedIntent)
+                // Always send finished signal
+                val finishedIntent = Intent("VT_SCAN_FINISHED").apply {
+                    putExtra("scanMode", scanMode)
                 }
+                sendBroadcast(finishedIntent)
+
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
@@ -150,19 +165,78 @@ class VirusTotalScanService : LifecycleService() {
 
         return START_NOT_STICKY
     }
+
+    // Add this new function to show cancelled notification
+    private fun showCancelledNotification() {
+        // First cancel the original notification
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.cancel(notificationId)
+
+        // Then show the cancelled notification
+        val notification = NotificationCompat.Builder(this, channelId)
+            .setContentTitle("Scan Cancelled")
+            .setContentText("VirusTotal scan was cancelled by user")
+            .setSmallIcon(android.R.drawable.ic_delete) // Changed icon for cancellation
+            .setAutoCancel(true)
+            .build()
+
+        notificationManager.notify(notificationId + 2, notification)
+    }
+
+    // Also update the cancel receiver to show cancelled notification
+    private val cancelReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == "CANCEL_VT_SCAN") {
+                Log.d("VirusTotalScanService", "Cancel broadcast received")
+                isCancelled.set(true)
+                scanJob?.cancel()
+
+                // Show cancelled notification immediately
+                showCancelledNotification()
+
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+                sendBroadcast(Intent("VT_SCAN_CANCELLED"))
+            }
+        }
+    }
+
+    private fun createCompletionNotification(): Notification {
+        // Create intent to open download screen
+        val intent = Intent(this, MainActivity::class.java).apply {
+            putExtra("navigateTo", "downloads")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        return NotificationCompat.Builder(this, channelId)
+            .setContentTitle("VirusTotal Scan Completed")
+            .setContentText("Tap to view results")
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent) // Set click action
+            .build()
+    }
+
     private suspend fun scanFiles(files: List<File>) {
         for ((index, file) in files.withIndex()) {
-            if (isCancelled) break
+            // Check for cancellation
+            if (isCancelled.get()) {
+                break
+            }
 
-            // Calculate progress
-            val progress = (index * 100 / files.size)
-
-            // Update notification
-            updateNotification(progress, "Scanning ${file.name}")
+            // Update notification with file name and "Scanning..." text
+            updateNotification(file.name, "Scanning...")
 
             // Send progress update
             val progressIntent = Intent("VT_SCAN_PROGRESS").apply {
-                putExtra("progress", progress)
+                putExtra("progress", (index * 100 / files.size))
                 putExtra("currentFile", index + 1)
                 putExtra("totalFiles", files.size)
                 putExtra("fileName", file.name)
@@ -174,13 +248,12 @@ class VirusTotalScanService : LifecycleService() {
                 val result = virusTotalRepo.scanFile(file)
                 results.add(result)
 
-                // Update progress after successful scan
-                val newProgress = ((index + 1) * 100 / files.size)
-                updateNotification(newProgress, "Scanned ${file.name}")
+                // Update notification after successful scan
+                updateNotification(file.name, "Scan completed")
 
                 // Send progress update
                 val newProgressIntent = Intent("VT_SCAN_PROGRESS").apply {
-                    putExtra("progress", newProgress)
+                    putExtra("progress", ((index + 1) * 100 / files.size))
                     putExtra("currentFile", index + 1)
                     putExtra("totalFiles", files.size)
                     putExtra("fileName", file.name)
@@ -188,7 +261,9 @@ class VirusTotalScanService : LifecycleService() {
                 sendBroadcast(newProgressIntent)
             } catch (e: Exception) {
                 Log.e("VirusTotalScanService", "Error scanning ${file.name}: ${e.message}")
-                // Send error for this file but continue with others
+                // Update notification with error
+                updateNotification(file.name, "Scan failed: ${e.message ?: "Unknown error"}")
+
                 val errorIntent = Intent("VT_FILE_SCAN_ERROR").apply {
                     putExtra("fileName", file.name)
                     putExtra("error", e.message ?: "Unknown error")
@@ -198,26 +273,18 @@ class VirusTotalScanService : LifecycleService() {
         }
     }
 
-    private fun createNotification(progress: Int, text: String): Notification {
-        val cancelIntent = Intent("CANCEL_VT_SCAN")
-        val cancelPending = PendingIntent.getBroadcast(
-            this, 0, cancelIntent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-
+    private fun createNotification(title: String, message: String): Notification {
+        // Notification with file name as title and status as content text
         return NotificationCompat.Builder(this, channelId)
-            .setContentTitle("VirusTotal Scan")
-            .setContentText("$text - $progress%")
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setProgress(100, progress, false)
-            .addAction(android.R.drawable.ic_delete, "Cancel", cancelPending)
-            .setOngoing(true)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setSmallIcon(android.R.drawable.ic_popup_sync)
             .setOnlyAlertOnce(true)
             .build()
     }
 
-    private fun updateNotification(progress: Int, text: String) {
-        val notification = createNotification(progress, text)
+    private fun updateNotification(title: String, text: String) {
+        val notification = createNotification(title, text)
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(notificationId, notification)
     }
@@ -232,7 +299,6 @@ class VirusTotalScanService : LifecycleService() {
                 description = "Shows progress of VirusTotal scans"
                 setShowBadge(false)
             }
-
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
         }
