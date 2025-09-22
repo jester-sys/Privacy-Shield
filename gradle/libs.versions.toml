@@ -15,6 +15,7 @@ foundationLayoutAndroid = "1.7.6"
 workRuntimeKtx = "2.10.3"
 uiTestAndroid = "1.7.8"
 lifecycleService = "2.9.3"
+tablericons = "1.13.0"
 
 
 [libraries]
@@ -39,6 +40,8 @@ androidx-foundation-layout-android = { group = "androidx.compose.foundation", na
 androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workRuntimeKtx" }
 androidx-ui-test-android = { group = "androidx.compose.ui", name = "ui-test-android", version.ref = "uiTestAndroid" }
 androidx-lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-service", version.ref = "lifecycleService" }
+
+tablericons = { group = "ir.alirezaivaz", name = "tablericons", version.ref = "tablericons" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

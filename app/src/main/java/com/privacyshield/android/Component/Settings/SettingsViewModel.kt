@@ -12,6 +12,9 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.privacyshield.android.Component.Settings.AppSecurity.computeSha256OfFile
+import com.privacyshield.android.Component.Settings.theme.AppSettingsRepository
+import com.privacyshield.android.Component.Settings.theme.Language
+import com.privacyshield.android.Component.Settings.theme.ThemeColor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
@@ -30,6 +33,7 @@ data class PlayProtectStatus(
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
+    private val appSettingsRepository: AppSettingsRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -46,6 +50,49 @@ class SettingsViewModel @Inject constructor(
     // ✅ Scanning state
     private val _isScanning = MutableStateFlow(false)
     val isScanning: StateFlow<Boolean> = _isScanning
+
+
+    fun setLanguage(language: Language) {
+        viewModelScope.launch {
+            appSettingsRepository.setLanguage(language)
+        }
+    }
+
+    fun setThemeColor(themeColor: ThemeColor) {
+        viewModelScope.launch {
+            appSettingsRepository.setThemeColor(themeColor)
+        }
+    }
+
+    fun setDynamicColor(dynamicColor: Boolean) {
+        viewModelScope.launch {
+            appSettingsRepository.setDynamicColor(dynamicColor)
+        }
+    }
+
+    fun setDarkTheme(mode: Boolean) {
+        viewModelScope.launch {
+            appSettingsRepository.setDarkTheme(mode)
+        }
+    }
+
+    fun setContrastMode(contrast: Boolean) {
+        viewModelScope.launch {
+            appSettingsRepository.setContrastMode(contrast)
+        }
+    }
+
+    fun setDisableTelemetry(disableTelemetry: Boolean) {
+        viewModelScope.launch {
+            appSettingsRepository.setDisableTelemetry(disableTelemetry)
+        }
+    }
+
+    fun setEnableExperimentalDetections(enableExperimentalDetections: Boolean) {
+        viewModelScope.launch {
+            appSettingsRepository.setEnableExperimentalDetections(enableExperimentalDetections)
+        }
+    }
 
     init {
         viewModelScope.launch {

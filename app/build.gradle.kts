@@ -87,6 +87,12 @@ dependencies {
     implementation("androidx.room:room-runtime:2.6.1")
     kapt("androidx.room:room-compiler:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.6.0")
+    implementation(libs.tablericons)
+
+    implementation("com.mikepenz:androidx-compose-icons-tabler:2.0.0")
+    // or for the full icon pack:
+    implementation("com.mikepenz:androidx-compose-icons-tabler-full:2.0.0")
 
 
 
