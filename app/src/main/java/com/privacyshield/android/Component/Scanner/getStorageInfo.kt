@@ -4,6 +4,7 @@ import android.os.Environment
 import android.os.StatFs
 import com.privacyshield.android.Component.Scanner.model.StorageInfo
 
+
 // Optional: get total storage info for device
 fun getStorageInfo(): StorageInfo {
     val stat = StatFs(Environment.getExternalStorageDirectory().path)

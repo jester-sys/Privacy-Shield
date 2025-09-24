@@ -1,4 +1,4 @@
-package com.privacyshield.android.Component.Screen.Overview.Utility
+package com.privacyshield.android.Component.Screen.Overview.viewModel
 
 import android.app.ActivityManager
 import android.app.Application

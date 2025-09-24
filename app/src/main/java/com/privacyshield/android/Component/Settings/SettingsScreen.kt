@@ -75,7 +75,7 @@ fun SettingsScreen(
         SettingNavigationItem(
             title = "Theme",
             icon = Icons.Default.ColorLens,
-            onClick = { navController.navigate("theme") }
+            onClick = { navController.navigate("Appearance") }
         )
 
         // 🔹 New Downloads / Scan Results section

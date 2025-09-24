@@ -4,4 +4,38 @@
     <string name="VIBRATE">"\n            Vibration Permission:\n            - Allows the app to trigger vibrations.\n            - Use case: Notifications, haptic feedback.\n            - Risks: Minimal risk, but excessive vibration can annoy users.\n        "</string>
     <string name="Other_Permission">"\n            Other Permission:\n            - Provides specific access required by the app.\n            - Use case and risks depend on the exact permission.\n        "</string>
     <string name="READ_CALENDAR">"\n            Calendar Permission:\n            - Access your calendar events.\n            - Sub-permissions: Read existing events, add/edit/delete events.\n            - Use case: Scheduling, reminders, event syncing.\n            - Risks: Apps can see your appointments, track your schedule.\n        "</string>
+
+
+    <string name="settings_appearance">Appearance</string>
+
+    <string name="pref_dynamic_color">Dynamic Color</string>
+    <string name="pref_dynamic_color_desc">Apply colors from wallpapers to the app theme</string>
+    <string name="pref_dark_theme">Dark Theme</string>
+    <string name="pref_high_contrast">High Contrast</string>
+
+
+    <!-- _b is for signature valid status -->
+    <string name="sysinfo">System</string>
+    <string name="sysinfo_device">Device: %s</string>
+    <string name="sysinfo_android_version">Android Version: %s</string>
+    <string name="sysinfo_kernel_version">Kernel Version: %s</string>
+    <string name="appinfo">App</string>
+    <string name="appinfo_version">App Version: %s</string>
+    <string name="appinfo_signature">App Signature: %s</string>
+    <string name="appinfo_is_signature_valid">Signature Valid: %s</string>
+    <string name="appinfo_unknown_version">UNKNOWN</string>
+    <string name="experimental_detections">Experimental Detections: %s</string>
+    <string name="DayNight">Dark Mode</string>
+    <string name="the_environment_is_normal">The Environment is normal</string>
+    <string name="the_environment_is_abnormal">The Environment is abnormal</string>
+    <string name="description_normal">No modifications to the environment are detected.</string>
+    <string name="description_abnormal">Modifications to the environment are detected.</string>
+
+    <!-- _a is for experimental detection status -->
+    <string name="true_b">True</string>
+    <string name="false_b">False</string>
+
+    <!-- _a & _b are set for certain languages -->
+    <string name="true_a">True</string>
+    <string name="false_a">False</string>
 </resources>

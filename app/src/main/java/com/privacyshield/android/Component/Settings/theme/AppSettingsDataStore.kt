@@ -2,7 +2,6 @@ package com.privacyshield.android.Component.Settings.theme
 
 
 import androidx.datastore.core.DataStore
-import com.reveny.nativecheck.datastore.model.*
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 

@@ -15,7 +15,10 @@ foundationLayoutAndroid = "1.7.6"
 workRuntimeKtx = "2.10.3"
 uiTestAndroid = "1.7.8"
 lifecycleService = "2.9.3"
-tablericons = "1.13.0"
+datastoreCoreAndroid = "1.1.7"
+datastorePreferencesCoreAndroid = "1.1.7"
+roomRuntimeAndroid = "2.8.0"
+
 
 
 [libraries]
@@ -41,7 +44,10 @@ androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx"
 androidx-ui-test-android = { group = "androidx.compose.ui", name = "ui-test-android", version.ref = "uiTestAndroid" }
 androidx-lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-service", version.ref = "lifecycleService" }
 
-tablericons = { group = "ir.alirezaivaz", name = "tablericons", version.ref = "tablericons" }
+
+androidx-datastore-core-android = { group = "androidx.datastore", name = "datastore-core-android", version.ref = "datastoreCoreAndroid" }
+androidx-datastore-preferences-core-android = { group = "androidx.datastore", name = "datastore-preferences-core-android", version.ref = "datastorePreferencesCoreAndroid" }
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

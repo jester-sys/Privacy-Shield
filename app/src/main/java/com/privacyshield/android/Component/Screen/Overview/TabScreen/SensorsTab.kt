@@ -1,6 +1,5 @@
 package com.privacyshield.android.Component.Screen.Overview.TabScreen
 
-import android.hardware.Sensor
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -15,13 +14,10 @@ import androidx.compose.foundation.layout.padding
 import com.google.ai.client.generativeai.GenerativeModel
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -41,15 +37,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.privacyshield.android.Component.Screen.Overview.Component.SectionHeader
 import com.privacyshield.android.Component.Screen.Overview.Model.SensorInfo
-import com.privacyshield.android.Component.Screen.Overview.Utility.SensorsViewModel
+import com.privacyshield.android.Component.Screen.Overview.viewModel.SensorsViewModel
 import com.privacyshield.android.R
 import kotlinx.coroutines.launch
 

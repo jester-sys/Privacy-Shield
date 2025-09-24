@@ -5,6 +5,7 @@ plugins {
     id("com.google.dagger.hilt.android")
     id("kotlin-kapt")
     id("kotlin-parcelize")
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23"
 }
 
 android {
@@ -19,6 +20,10 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // ✅ Correct API key handling
+        val aiKey = project.findProperty("AI_KEY") as? String ?: ""
+        buildConfigField("String", "AI_KEY", "\"$aiKey\"")
     }
 
     buildTypes {
@@ -30,18 +35,21 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
     buildFeatures {
         compose = true
+        buildConfig = true // ✅ YEH LINE ADD KARO
     }
 }
-
 dependencies {
 
     implementation(libs.androidx.core.ktx)
@@ -59,6 +67,9 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.ui.test.android)
     implementation(libs.androidx.lifecycle.service)
+    implementation(libs.androidx.datastore.core.android)
+    implementation(libs.androidx.datastore.preferences.core.android)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -67,6 +78,8 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation ("androidx.navigation:navigation-compose:2.8.0")
+
+
 
 
     //Dagger Hilt
@@ -88,12 +101,20 @@ dependencies {
     kapt("androidx.room:room-compiler:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-protobuf:1.6.0")
-    implementation(libs.tablericons)
 
-    implementation("com.mikepenz:androidx-compose-icons-tabler:2.0.0")
-    // or for the full icon pack:
-    implementation("com.mikepenz:androidx-compose-icons-tabler-full:2.0.0")
 
+
+
+    implementation("br.com.devsrsouza.compose.icons:tabler-icons:1.1.0")
+    implementation("com.google.accompanist:accompanist-pager:0.32.0")
+
+    // Pager Indicators
+    implementation("com.google.accompanist:accompanist-pager-indicators:0.32.0")
+    implementation("com.caverock:androidsvg:1.4")
+    implementation("androidx.datastore:datastore:1.1.1")
+
+    implementation("androidx.compose.material3:material3:1.2.0")
+    implementation("androidx.compose.material3:material3-window-size-class:1.2.0")
 
 
 }

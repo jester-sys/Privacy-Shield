@@ -79,6 +79,7 @@ class VirusTotalScanService : LifecycleService() {
 
         val paths = intent?.getStringArrayExtra("files") ?: emptyArray()
         val scanMode = intent?.getStringExtra("scanMode") ?: "SINGLE"
+        val source = intent?.getStringExtra("source") ?: "unknown"
         val files = paths.map { File(it) }.filter { it.exists() && it.isFile && it.length() <= 32 * 1024 * 1024 }
 
         if (files.isEmpty()) {
@@ -132,6 +133,7 @@ class VirusTotalScanService : LifecycleService() {
                     val completeIntent = Intent("VT_SCAN_COMPLETE").apply {
                         putExtra("files", paths)
                         putExtra("scanMode", scanMode)
+
                     }
                     sendBroadcast(completeIntent)
                 }

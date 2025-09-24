@@ -3,7 +3,9 @@ package com.privacyshield.android.ui.theme
 import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -12,59 +14,52 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.text.style.LineBreak
+import androidx.compose.ui.text.style.TextDirection
+import com.privacyshield.android.R
 
 
-
-
-// 🌙 DARK THEME
-private val DarkColorScheme = darkColorScheme(
-    primary = GreenPrimary,
-    secondary = GreenSecondary,
-    tertiary = Cyan,
-    background = BackgroundDark,
-    surface = SurfaceDark,
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.Black,
-    onBackground = TextPrimaryDark,
-    onSurface = TextPrimaryDark
-)
-
-// ☀ LIGHT THEME
-private val LightColorScheme = lightColorScheme(
-    primary = GreenPrimary,
-    secondary = GreenSecondary,
-    tertiary = Cyan,
-    background = BackgroundLight,
-    surface = SurfaceLight,
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.Black,
-    onBackground = TextPrimaryLight,
-    onSurface = TextPrimaryLight
-)
-
-
-// 🎨 MAIN THEME FUNCTION
 @Composable
 fun PrivacyShieldTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    themeColor: Color,
+    isDynamicColor: Boolean,
+    theme: Boolean,
+    contrastMode: Boolean,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    val context = LocalContext.current
+    val colorScheme = if (isDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        // Android 12+ dynamic colors
+        if (theme) {
+            dynamicDarkColorScheme(context)
+        } else {
+            dynamicLightColorScheme(context)
         }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+    } else {
+        // Custom colors
+        if (theme) {
+            darkColorScheme(
+                primary = themeColor,
+                onPrimary = Color.White,
+                primaryContainer = themeColor.copy(alpha = 0.2f),
+                secondary = themeColor.copy(alpha = 0.8f),
+                tertiary = themeColor.copy(alpha = 0.6f),
+            )
+        } else {
+            lightColorScheme(
+                primary = themeColor,
+                onPrimary = Color.White,
+                primaryContainer = themeColor.copy(alpha = 0.1f),
+                secondary = themeColor.copy(alpha = 0.8f),
+                tertiary = themeColor.copy(alpha = 0.6f),
+            )
+        }
     }
 
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
-        shapes = AppShapes, // ✅ FIXED
         content = content
     )
 }

@@ -27,7 +27,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -45,7 +44,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.ai.client.generativeai.GenerativeModel
-import com.privacyshield.android.Component.Screen.Overview.Utility.OsViewModel
+import com.privacyshield.android.Component.Screen.Overview.Component.SectionHeader
+import com.privacyshield.android.Component.Screen.Overview.InfoSection.InfoHintBox
+import com.privacyshield.android.Component.Screen.Overview.viewModel.OsViewModel
 import com.privacyshield.android.R
 import kotlinx.coroutines.launch
 

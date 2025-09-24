@@ -1,6 +1,5 @@
-package com.privacyshield.android.Component.Screen.Overview.Utility
+package com.privacyshield.android.Component.Screen.Overview.viewModel
 
-import android.opengl.EGLConfig
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 

@@ -47,46 +47,43 @@ import com.privacyshield.android.Component.Screen.Overview.TabScreen.OsTab
 import com.privacyshield.android.Component.Screen.Overview.TabScreen.RamTab
 import com.privacyshield.android.Component.Screen.Overview.TabScreen.SensorsTab
 import com.privacyshield.android.Component.Screen.Overview.TabScreen.StorageTab
+import com.privacyshield.android.Component.Settings.theme.providable.LocalAppSettings
+import com.privacyshield.android.Utils.theme.resolveBackgroundColor
+import com.privacyshield.android.Utils.theme.resolveTextColor
 import kotlinx.coroutines.launch
 import java.io.File
 @OptIn(ExperimentalFoundationApi::class)
+
 @Composable
 fun OverviewScreen() {
     val tabs = listOf("CPU", "GPU", "RAM", "Storage", "OS", "Hardware", "Sensors")
 
-
-    val tabColors = listOf(
-        Color(0xFF1976D2), // CPU -> Blue
-        Color(0xFF388E3C), // GPU -> Green
-        Color(0xFFF57C00), // RAM -> Orange
-        Color(0xFF7B1FA2), // Storage -> Purple
-        Color(0xFF00BCD4), // OS -> Teal
-        Color(0xFFD32F2F), // Hardware -> Red
-        Color(0xFF1DE9B6)  // Sensors -> Gray
-    )
-
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { tabs.size })
     val coroutineScope = rememberCoroutineScope()
+    val colorScheme = MaterialTheme.colorScheme
+    val appSettings = LocalAppSettings.current
+    val primaryColor = colorScheme.primary
+    val backgroundColor = resolveBackgroundColor(appSettings, primaryColor)
+    val textColor = resolveTextColor(appSettings, colorScheme)
 
     Column {
         ScrollableTabRow(
             selectedTabIndex = pagerState.currentPage,
-            containerColor = Color(0xFF121212),
-            contentColor = Color.White,
             edgePadding = 8.dp,
-            // ✅ Custom indicator
+            containerColor = backgroundColor,
+            contentColor = MaterialTheme.colorScheme.onSurface,
             indicator = { tabPositions ->
                 TabRowDefaults.Indicator(
-                    Modifier
-                        .tabIndicatorOffset(tabPositions[pagerState.currentPage]),
+                    Modifier.tabIndicatorOffset(tabPositions[pagerState.currentPage]),
                     height = 3.dp,
-                    color = tabColors[pagerState.currentPage]  // selected tab ka color
+                    color = MaterialTheme.colorScheme.primary // ✅ active tab indicator = primary
                 )
             }
         ) {
             tabs.forEachIndexed { index, title ->
+                val isSelected = pagerState.currentPage == index
                 Tab(
-                    selected = pagerState.currentPage == index,
+                    selected = isSelected,
                     onClick = {
                         coroutineScope.launch {
                             pagerState.animateScrollToPage(index)
@@ -94,11 +91,13 @@ fun OverviewScreen() {
                     },
                     text = {
                         Text(
-                            title,
-                            color = if (pagerState.currentPage == index)
-                                tabColors[index] // ✅ active tab -> apna color
-                            else
-                                Color.White.copy(0.7f) // inactive -> white
+                            text = title,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = if (isSelected) {
+                                MaterialTheme.colorScheme.primary // ✅ active tab text
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f) // inactive text
+                            }
                         )
                     }
                 )
@@ -121,7 +120,6 @@ fun OverviewScreen() {
         }
     }
 }
-
 
 
 

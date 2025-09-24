@@ -2,6 +2,7 @@ package com.privacyshield.android.Component.navigation
 
 import android.app.Activity
 import androidx.compose.runtime.Composable
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -13,11 +14,14 @@ import androidx.navigation.navArgument
 import com.privacyshield.android.Component.Screen.Deatils.DetailsScreen
 import com.privacyshield.android.Component.Screen.SplashScreen
 import com.privacyshield.android.Model.AppDetail
+import com.privacyshield.android.ViewModel.MainViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
 
 @Composable
 fun AppNavGraph(
     startDestination: String = AppRoute.Splash.route,
-    activity: Activity
+    activity: Activity,
+    viewModel: MainViewModel
 ) {
     val navController = rememberNavController()
 
@@ -34,7 +38,7 @@ fun AppNavGraph(
 
         // Main
         composable(AppRoute.Main.route) {
-            MainScreen(navController = rememberNavController(), activity = activity)
+            MainScreen(navController = rememberNavController(), activity = activity,viewModel)
         }
 
         // Direct App Details (not used inside bottomNav but keeping it)

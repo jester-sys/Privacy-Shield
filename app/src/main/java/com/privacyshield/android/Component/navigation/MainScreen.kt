@@ -5,6 +5,8 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -80,14 +82,19 @@ import com.privacyshield.android.Component.Settings.DownloadScreen
 import com.privacyshield.android.Component.Settings.PrivacySecurityScreen
 import com.privacyshield.android.Component.Settings.SettingsScreen
 import com.privacyshield.android.Component.Settings.Trash.TrashScreen
+import com.privacyshield.android.Component.Settings.theme.Appearance
+import com.privacyshield.android.Component.Settings.theme.providable.LocalAppSettings
 import com.privacyshield.android.Model.AppDetail
+import com.privacyshield.android.Utils.theme.resolveBackgroundColor
+import com.privacyshield.android.Utils.theme.resolveTextColor
+import com.privacyshield.android.ViewModel.MainViewModel
 import com.privacyshield.android.ui.theme.GreenPrimary
 import java.io.File
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(navController: NavHostController, activity: Activity) {
+fun MainScreen(navController: NavHostController, activity: Activity,mainViewModel: MainViewModel) {
     val bottomItems = listOf(
         BottomNavItem.Home,
         BottomNavItem.Scanner,
@@ -97,6 +104,8 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val detections by mainViewModel.detections.collectAsState()
+
 
     val shouldShowBottomBar =
         currentRoute?.startsWith("permission_details") == false &&
@@ -119,6 +128,11 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
     // ✅ Sort option state yahin maintain karenge
     var sortOption by remember { mutableStateOf("Name") }
     var expanded by remember { mutableStateOf(false) }
+    val colorScheme = MaterialTheme.colorScheme
+    val appSettings = LocalAppSettings.current
+    val primaryColor = colorScheme.primary
+    val backgroundColor = resolveBackgroundColor(appSettings, primaryColor)
+    val textColor = resolveTextColor(appSettings, colorScheme)
     var gridColumns by remember { mutableStateOf(120.dp) } // initial screen ke hisaab se
     var gridIcon by remember {
         mutableStateOf(
@@ -178,23 +192,32 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
 
     if (shouldShowScaffold) {
         Scaffold(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface,
             topBar = {
                 when {
                     currentRoute == "details" -> {
                         TopAppBar(
-                            title = { Text("App Details", color = Color.White) },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                titleContentColor = MaterialTheme.colorScheme.onSurface,
+                                navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                                actionIconContentColor = MaterialTheme.colorScheme.onSurface
+                            ),
+                            title = {
+                                Text("App Details", color = MaterialTheme.colorScheme.onPrimary)
+                            },
                             navigationIcon = {
                                 IconButton(onClick = { navController.popBackStack() }) {
                                     Icon(
                                         Icons.Default.ArrowBack,
                                         contentDescription = "Back",
-                                        tint = Color.White
+                                        tint = MaterialTheme.colorScheme.onPrimary
                                     )
                                 }
                             },
                             actions = {
                                 IconButton(onClick = {
-                                    // App ko navController ke savedStateHandle me bhej do
                                     navController.currentBackStackEntry?.savedStateHandle?.set(
                                         "selectedApp",
                                         app
@@ -204,7 +227,7 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                                     Icon(
                                         imageVector = Icons.Default.Analytics,
                                         contentDescription = "Insights",
-                                        tint = Color.White
+                                        tint = MaterialTheme.colorScheme.onPrimary
                                     )
                                 }
 
@@ -212,8 +235,7 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                                     try {
                                         val intent =
                                             Intent("android.intent.action.MANAGE_APP_PERMISSIONS").apply {
-                                                data =
-                                                    Uri.fromParts("package", app?.packageName, null)
+                                                data = Uri.fromParts("package", app?.packageName, null)
                                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                             }
                                         context.startActivity(intent)
@@ -230,7 +252,7 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                                     Icon(
                                         Icons.Default.Info,
                                         contentDescription = "Settings",
-                                        tint = Color.White
+                                        tint = MaterialTheme.colorScheme.onPrimary
                                     )
                                 }
                                 selectedApp?.let { app ->
@@ -242,11 +264,7 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                                                 "battery_usage" -> showBatteryUsageDialog = true
                                                 "storage_usage" -> showStorageUsageDialog = true
                                                 "permissions" -> showPermissionsDialog = true
-                                                "open_by_default" -> manageOpenByDefault(
-                                                    context,
-                                                    clickedApp
-                                                )
-
+                                                "open_by_default" -> manageOpenByDefault(context, clickedApp)
                                                 "open" -> openApp(context, clickedApp)
                                                 "uninstall" -> uninstallApp(activity, clickedApp)
                                                 "share" -> shareApp(context, clickedApp)
@@ -254,10 +272,7 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                                         }
                                     )
                                 }
-                            },
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = Color(0xFF1E1E1E)
-                            )
+                            }
                         )
                     }
 
@@ -277,36 +292,40 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                             else -> "Files"
                         }
                         TopAppBar(
-                            title = { Text(title, color = Color.White) },
+                            title = {
+                                Text(title, color = MaterialTheme.colorScheme.onPrimary)
+                            },
                             navigationIcon = {
                                 IconButton(onClick = { navController.popBackStack() }) {
                                     Icon(
                                         Icons.Default.ArrowBack,
                                         contentDescription = "Back",
-                                        tint = Color.White
+                                        tint = MaterialTheme.colorScheme.onPrimary
                                     )
                                 }
                             },
                             actions = {
                                 IconButton(onClick = {
-                                    // Toggle logic
                                     if (gridColumns == 120.dp) {
                                         gridColumns = 150.dp
                                         gridIcon = Icons.Default.ViewAgenda
                                     } else {
-                                        gridColumns = 120.dp // screen ke hisaab se reset
-                                        gridIcon =
-                                            if (120.dp == 120.dp) Icons.Default.GridView else Icons.Default.ViewAgenda
+                                        gridColumns = 120.dp
+                                        gridIcon = if (120.dp == 120.dp) Icons.Default.GridView else Icons.Default.ViewAgenda
                                     }
                                 }) {
-                                    Icon(imageVector = gridIcon, contentDescription = "Toggle Grid")
+                                    Icon(
+                                        imageVector = gridIcon,
+                                        contentDescription = "Toggle Grid",
+                                        tint = MaterialTheme.colorScheme.onPrimary
+                                    )
                                 }
 
                                 IconButton(onClick = { expanded = true }) {
                                     Icon(
                                         imageVector = Icons.Default.Sort,
                                         contentDescription = "Sort",
-                                        tint = Color.White
+                                        tint = MaterialTheme.colorScheme.onPrimary
                                     )
                                 }
 
@@ -316,17 +335,19 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                                     modifier = Modifier
                                         .shadow(4.dp, RoundedCornerShape(16.dp))
                                         .background(
-                                            color = Color(0xFF3A3A3A),
+                                            color = MaterialTheme.colorScheme.surfaceVariant,
                                             shape = RoundedCornerShape(16.dp)
                                         )
                                 ) {
                                     DropdownMenuItem(
-                                        text = { Text("Name") },
+                                        text = {
+                                            Text("Name", color = MaterialTheme.colorScheme.onSurface)
+                                        },
                                         leadingIcon = {
                                             Icon(
                                                 imageVector = Icons.Default.SortByAlpha,
                                                 contentDescription = null,
-                                                tint = Color(0xFF2196F3)
+                                                tint = MaterialTheme.colorScheme.primary
                                             )
                                         },
                                         onClick = {
@@ -337,12 +358,14 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                                         }
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("Date") },
+                                        text = {
+                                            Text("Date", color = MaterialTheme.colorScheme.onSurface)
+                                        },
                                         leadingIcon = {
                                             Icon(
                                                 imageVector = Icons.Default.DateRange,
                                                 contentDescription = null,
-                                                tint = Color(0xFF4CAF50)
+                                                tint = MaterialTheme.colorScheme.primary
                                             )
                                         },
                                         onClick = {
@@ -353,12 +376,14 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                                         }
                                     )
                                     DropdownMenuItem(
-                                        text = { Text("Size") },
+                                        text = {
+                                            Text("Size", color = MaterialTheme.colorScheme.onSurface)
+                                        },
                                         leadingIcon = {
                                             Icon(
                                                 imageVector = Icons.Default.Storage,
                                                 contentDescription = null,
-                                                tint = Color(0xFFFF9800)
+                                                tint = MaterialTheme.colorScheme.primary
                                             )
                                         },
                                         onClick = {
@@ -369,66 +394,58 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                                         }
                                     )
                                 }
-                            },
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = Color(0xFF1E1E1E)
-                            )
+                            }
                         )
                     }
 
                     currentRoute?.startsWith("permission_details") == true -> {
                         TopAppBar(
-                            title = { Text("Permission Details", color = Color.White) },
+                            title = {
+                                Text("Permission Details", color = MaterialTheme.colorScheme.onPrimary)
+                            },
                             navigationIcon = {
                                 IconButton(onClick = { navController.popBackStack() }) {
                                     Icon(
                                         Icons.Default.ArrowBack,
                                         contentDescription = "Back",
-                                        tint = Color.White
+                                        tint = MaterialTheme.colorScheme.onPrimary
                                     )
                                 }
-                            },
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = Color(0xFF1E1E1E)
-                            )
+                            }
                         )
                     }
 
                     currentRoute == "overview" -> {
                         TopAppBar(
-                            title = { Text("Device Info", color = Color.White) },
-                            actions = {
-                                IconButton(onClick = {
-                                    navController.navigate("settings")
-                                }) {
-                                    Icon(
-                                        Icons.Default.Settings,
-                                        contentDescription = "Settings",
-                                        tint = Color.White
-                                    )
-                                }
+                             colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = backgroundColor,
+                                titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
+                            title = {
+                                Text("Device Info", color = textColor)
                             },
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = Color(0xFF1E1E1E)
-                            )
+
                         )
                     }
 
                     currentRoute?.startsWith("UsageDetail") == true -> {
                         TopAppBar(
-                            title = { Text("${app?.appName} Insights", color = Color.White) },
+                            title = {
+                                Text("${app?.appName} Insights", color = MaterialTheme.colorScheme.onPrimary)
+                            },
                             actions = {
                                 IconButton(onClick = {
                                     val intent =
                                         Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                                    intent.data =
-                                        Uri.parse("package:${app?.packageName}")
+                                    intent.data = Uri.parse("package:${app?.packageName}")
                                     context.startActivity(intent)
                                 }) {
                                     Icon(
                                         imageVector = Icons.Default.Settings,
                                         contentDescription = "settings",
-                                        tint = Color.White
+                                        tint = MaterialTheme.colorScheme.onPrimary
                                     )
                                 }
                             },
@@ -437,13 +454,10 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                                     Icon(
                                         Icons.Default.ArrowBack,
                                         contentDescription = "Back",
-                                        tint = Color.White
+                                        tint = MaterialTheme.colorScheme.onPrimary
                                     )
                                 }
-                            },
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = Color(0xFF1E1E1E)
-                            )
+                            }
                         )
                     }
                 }
@@ -451,12 +465,13 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
             bottomBar = {
                 if (shouldShowBottomBar) {
                     NavigationBar(
-                        containerColor = Color(0xFF1E1E1E),
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.primaryContainer,
                         tonalElevation = 6.dp,
-                        contentColor = Color.White
                     ) {
                         bottomItems.forEach { item ->
                             NavigationBarItem(
+
                                 selected = currentRoute == item.route.route,
                                 onClick = {
                                     navController.navigate(item.route.route) {
@@ -470,33 +485,43 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
                                 label = {
                                     Text(
                                         item.title,
-                                        style = MaterialTheme.typography.labelSmall
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (currentRoute == item.route.route) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
                                     )
                                 },
                                 icon = {
                                     Icon(
                                         painter = painterResource(id = item.icon),
-                                        contentDescription = item.title
+                                        contentDescription = item.title,
+                                        tint = if (currentRoute == item.route.route) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
                                     )
                                 },
                                 colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = GreenPrimary,
-                                    unselectedIconColor = Color(0xFF9E9E9E),
-                                    selectedTextColor = GreenPrimary,
-                                    unselectedTextColor = Color(0xFF9E9E9E),
-                                    indicatorColor = GreenPrimary.copy(alpha = 0.2f)
+                                    selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    unselectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f),
+                                    selectedTextColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    unselectedTextColor = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f),
+                                    indicatorColor = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.2f)
                                 )
                             )
                         }
                     }
                 }
-
             }
         ) { innerPadding ->
             NavHost(
                 navController,
                 startDestination = BottomNavItem.Home.route.route,
                 modifier = Modifier.padding(innerPadding)
+                    .background(MaterialTheme.colorScheme.background),
             ) {
                 composable("unused_apps_screen") {
                     UnusedAppsScreen(navController)
@@ -626,6 +651,10 @@ fun MainScreen(navController: NavHostController, activity: Activity) {
 
                 composable("ignoredApps") {
                     IgnoredAppsScreen(navController)
+                }
+
+                composable("Appearance") {
+                    Appearance(navController)
                 }
 
                 composable("UsageDetail") {
