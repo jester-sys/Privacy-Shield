@@ -1,4 +1,4 @@
-package com.privacyshield.android.Component.Screen.Overview.Indicator
+package com.privacyshield.android.Component.Screen.Overview.Component
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.dp
 import com.privacyshield.android.Component.Settings.theme.AppSettings
 
 @Composable
-fun GpuLoadingIndicator(
+fun LoadingIndicator(
     isLoading: Boolean,
     showAssistantCard: Boolean,
     appSettings: AppSettings,

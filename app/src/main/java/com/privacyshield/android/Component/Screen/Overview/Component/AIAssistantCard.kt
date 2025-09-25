@@ -1,4 +1,4 @@
-package com.privacyshield.android.Component.Screen.Overview.AssistantCard
+package com.privacyshield.android.Component.Screen.Overview.Component
 
 
 import androidx.compose.foundation.BorderStroke

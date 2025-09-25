@@ -7,13 +7,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -24,15 +24,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.ai.client.generativeai.GenerativeModel
-import com.privacyshield.android.Component.Screen.Overview.AssistantCard.AIAssistantCard
-import com.privacyshield.android.Component.Screen.Overview.Indicator.GpuLoadingIndicator
+import com.privacyshield.android.Component.Screen.Overview.Component.AIAssistantCard
+import com.privacyshield.android.Component.Screen.Overview.Component.LoadingIndicator
 import com.privacyshield.android.Component.Screen.Overview.InfoSection.AppStorageSection
-import com.privacyshield.android.Component.Screen.Overview.InfoSection.ExternalStorageSection
 import com.privacyshield.android.Component.Screen.Overview.InfoSection.InternalStorageSection
 import com.privacyshield.android.Component.Screen.Overview.Model.StorageInfo
 import com.privacyshield.android.Component.Screen.Overview.Utility.ExplanationType
@@ -84,15 +82,15 @@ fun StorageTab(viewModel: StorageViewModel = hiltViewModel()) {
         modifier = Modifier
             .fillMaxSize()
             .background(backgroundColor)
-            .padding(vertical = 8.dp) // top-bottom padding
+            .padding(vertical = 8.dp)
     ) {
         Column {
-            GpuLoadingIndicator(isLoading, showAssistantCard, appSettings, primaryColor)
+            LoadingIndicator(isLoading, showAssistantCard, appSettings, primaryColor)
 
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp),
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             if (showAssistantCard) {
@@ -179,7 +177,6 @@ fun StorageTab(viewModel: StorageViewModel = hiltViewModel()) {
         }
         }
 
-        // Floating Action Button
         FloatingActionButton(
             onClick = {
                 coroutineScope.launch {
@@ -204,11 +201,7 @@ fun StorageTab(viewModel: StorageViewModel = hiltViewModel()) {
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
         ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_ai_icon),
-                contentDescription = "AI Info",
-                tint = textColor
-            )
+            Icon(Icons.Default.SmartToy, contentDescription = "AI Info")
         }
     }
 }
@@ -218,43 +211,5 @@ fun StorageTab(viewModel: StorageViewModel = hiltViewModel()) {
 
 
 
-suspend fun getStorageExplanation(
-    totalStorage: String,
-    usedStorage: String,
-    freeStorage: String,
-    systemStorage: String,
-    appStorage: String,
-    cacheStorage: String,
-    userQuestion: String? = null,
-): String {
-    val model = GenerativeModel(
-        modelName = "gemini-1.5-flash",
-        apiKey = "AIzaSyBnM52QDppM97TN1CMIPm3yyWD0g09vYtA" // apna API key daalna
-    )
 
-    // ✅ Build Storage info string
-    val storageInfo = buildString {
-        appendLine("Total Storage: $totalStorage")
-        appendLine("Used Storage: $usedStorage")
-        appendLine("Free Storage: $freeStorage")
-        appendLine("System Storage: $systemStorage")
-        appendLine("App Storage: $appStorage")
-        appendLine("Cache Storage: $cacheStorage")
-
-    }
-
-    // ✅ Build prompt
-    val prompt = if (userQuestion.isNullOrBlank()) {
-        "Explain this Storage information in very simple terms:\n$storageInfo"
-    } else {
-        "Here is the Storage information:\n$storageInfo\n\nNow answer this question in simple terms:\n$userQuestion"
-    }
-
-    return try {
-        val response = model.generateContent(prompt)
-        response.text ?: "No explanation found."
-    } catch (e: Exception) {
-        "Error: ${e.localizedMessage}"
-    }
-}
 

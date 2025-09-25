@@ -48,7 +48,7 @@ fun InfoCard(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
                 .padding(16.dp)
-                .background( Color.Transparent) // Optional shadow on Box
+                .background( Color.Transparent)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -57,22 +57,25 @@ fun InfoCard(
                 Icon(
                     imageVector = icon,
                     contentDescription = title,
-                    tint = textColor
+                    tint = textColor,
+                    modifier = Modifier.size(20.dp)
                 )
 
                 Column {
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.bodyMedium.copy(
+                        style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.SemiBold,
                         ),
                         color = textColor
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
                         text = value,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = textColor
+                        style = MaterialTheme.typography.bodySmall,
+                        color = textColor,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }

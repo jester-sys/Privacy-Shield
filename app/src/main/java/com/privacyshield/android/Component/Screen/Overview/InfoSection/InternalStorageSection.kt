@@ -15,7 +15,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.Button
@@ -54,6 +57,9 @@ import com.privacyshield.android.Component.Screen.Overview.Utility.parseFirstNum
 import com.privacyshield.android.Component.Screen.Overview.Utility.usageColor
 import com.privacyshield.android.Component.Screen.Overview.viewModel.StorageViewModel
 import com.privacyshield.android.R
+import com.privacyshield.android.Utils.theme.resolveBackgroundColor
+import com.privacyshield.android.Utils.theme.resolveSurfaceColor
+import com.privacyshield.android.Utils.theme.resolveTextColor
 import kotlinx.coroutines.launch
 
 @Composable
@@ -61,10 +67,11 @@ fun InternalStorageSection(
     total: String,
     available: String,
     usedPct: Float,
-    textColor: Color = Color.Black,
+    textColor: Color = Color.Unspecified,
     primaryColor: Color = Color(0xFF4CAF50),
     surfaceColor: Color = Color(0xFFE0E0E0)
 ) {
+
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SectionHeader("Internal Storage", textColor)
 
@@ -165,7 +172,8 @@ fun AppStorageSection(
             value = appCode ?: "N/A",
             titleColor = textColor,
             valueColor = primaryColor,
-            backgroundColor = surfaceColor
+            backgroundColor = surfaceColor,
+            icon = Icons.Default.Android // APK ke liye Android icon
         )
 
         TintedStatBox(
@@ -173,7 +181,8 @@ fun AppStorageSection(
             value = appData ?: "N/A",
             titleColor = textColor,
             valueColor = primaryColor.copy(alpha = 0.8f),
-            backgroundColor = surfaceColor
+            backgroundColor = surfaceColor,
+            icon = Icons.Default.Folder
         )
 
         TintedStatBox(
@@ -181,7 +190,8 @@ fun AppStorageSection(
             value = appCache ?: "N/A",
             titleColor = textColor,
             valueColor = primaryColor.copy(alpha = 0.6f),
-            backgroundColor = surfaceColor
+            backgroundColor = surfaceColor,
+            icon = Icons.Default.DeleteSweep
         )
 
         appNote?.let {

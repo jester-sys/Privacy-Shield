@@ -11,11 +11,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.privacyshield.android.Component.Screen.Overview.Model.CpuCoreInfo
@@ -43,14 +45,23 @@ fun CpuCoreCard(core: CpuCoreInfo, appSettings: AppSettings, primaryColor: Color
         colors = CardDefaults.cardColors(containerColor = primaryColor.copy(alpha = 0.12f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Core ${core.coreId}", color = progressColor, fontSize = 16.sp)
+            Text("Core ${core.coreId}", color = progressColor,   style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+            ),)
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Min: ${core.minFreq}", color = coreTextColor.copy(alpha = 0.7f))
-                Text("Max: ${core.maxFreq}", color = coreTextColor.copy(alpha = 0.7f))
+                Text("Min: ${core.minFreq}", color = coreTextColor.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                    )
+                Text("Max: ${core.maxFreq}", color = coreTextColor.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(6.dp))
-            Text("Current: ${core.curFreq}", color = progressColor)
+            Text("Current: ${core.curFreq}", color = progressColor,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(10.dp))
             LinearProgressIndicator(
                 progress = core.curPercent,
@@ -58,7 +69,7 @@ fun CpuCoreCard(core: CpuCoreInfo, appSettings: AppSettings, primaryColor: Color
                 trackColor = Color.DarkGray.copy(alpha = 0.3f),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(10.dp)
+                    .height(6.dp)
                     .clip(RoundedCornerShape(50))
             )
         }

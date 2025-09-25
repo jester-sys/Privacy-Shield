@@ -1,6 +1,7 @@
 package com.privacyshield.android.Component.Screen.Overview.TabScreen
 
 import android.opengl.GLSurfaceView
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,7 +10,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,10 +27,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.ai.client.generativeai.GenerativeModel
-import com.privacyshield.android.Component.Screen.Overview.AssistantCard.AIAssistantCard
-import com.privacyshield.android.Component.Screen.Overview.FloatingActionButton.GpuFloatingActionButton
-import com.privacyshield.android.Component.Screen.Overview.Indicator.GpuLoadingIndicator
+import com.privacyshield.android.Component.Screen.Overview.Component.AIAssistantCard
+import com.privacyshield.android.Component.Screen.Overview.Component.LoadingIndicator
 import com.privacyshield.android.Component.Screen.Overview.InfoSection.GpuInfoSection
+import com.privacyshield.android.Component.Screen.Overview.Model.CpuInfo
 import com.privacyshield.android.Component.Screen.Overview.Model.GpuInfo
 import com.privacyshield.android.Component.Screen.Overview.Utility.ExplanationType
 import com.privacyshield.android.Component.Screen.Overview.Utility.getDeviceExplanation
@@ -67,7 +72,7 @@ fun GpuTab() {
     ) {
         Column {
             // 🔹 Loading Indicator
-            GpuLoadingIndicator(isLoading, showAssistantCard, appSettings, primaryColor)
+            LoadingIndicator(isLoading, showAssistantCard, appSettings, primaryColor)
 
             // GPU Info Collector
             AndroidView(
@@ -107,8 +112,8 @@ fun GpuTab() {
                                 coroutineScope.launch {
                                     isLoading = true
                                      answer = getDeviceExplanation(
-                                        explanationType = ExplanationType.GPU,
-                                        userQuestion = q,
+                                         explanationType = ExplanationType.GPU,
+                                         userQuestion = q,
                                         gpuInfo = GpuInfo(
                                             renderer = renderer,
                                             vendor = vendor,
@@ -145,9 +150,8 @@ fun GpuTab() {
                 }
             }
         }
-
         // FloatingActionButton
-        GpuFloatingActionButton(
+        FloatingActionButton(
             onClick = {
                 coroutineScope.launch {
                     isLoading = true
@@ -166,13 +170,16 @@ fun GpuTab() {
                     showAssistantCard = true
                 }
             },
-            primaryColor = primaryColor,
-            currentColorScheme = currentColorScheme,
-            appSettings = appSettings,
+            containerColor = primaryColor,
+            contentColor = textColor,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
-        )
+        ) {
+            Icon(Icons.Default.SmartToy, contentDescription = "AI Info")
+        }
+
+
     }
 }
 

@@ -9,3 +9,11 @@ fun formatFreq(freq: String): String {
         "N/A"
     }
 }
+fun formatSize(sizeInBytes: String?): String {
+    val value = sizeInBytes?.toLongOrNull() ?: return "N/A"
+    if (value <= 0) return "N/A"
+
+    val sizeInGB = value.toDouble() / (1024 * 1024 * 1024)
+    return String.format("%.2f GB", sizeInGB)
+}
+

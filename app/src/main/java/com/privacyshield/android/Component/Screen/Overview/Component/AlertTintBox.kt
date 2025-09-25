@@ -31,13 +31,15 @@ fun AlertTintBox(title: String, value: String, isAlert: Boolean) {
                 text = title,
                 style = MaterialTheme.typography.titleSmall.copy(
                     fontWeight = FontWeight.SemiBold,
+
                     color = tint
                 )
             )
             Text(
                 text = value,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold
             )
         }
     }

@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -44,17 +46,39 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.google.ai.client.generativeai.GenerativeModel
+import com.privacyshield.android.Component.Screen.Overview.Component.AIAssistantCard
+import com.privacyshield.android.Component.Screen.Overview.Component.InfoCard
+import com.privacyshield.android.Component.Screen.Overview.Component.LoadingIndicator
+import com.privacyshield.android.Component.Screen.Overview.Component.SectionHeader
+import com.privacyshield.android.Component.Screen.Overview.InfoSection.FreeCachedRamCard
+import com.privacyshield.android.Component.Screen.Overview.InfoSection.RamContentSection
+import com.privacyshield.android.Component.Screen.Overview.InfoSection.SwapUsageCard
+import com.privacyshield.android.Component.Screen.Overview.Model.CpuInfo
+import com.privacyshield.android.Component.Screen.Overview.Model.RamInfo
+import com.privacyshield.android.Component.Screen.Overview.Utility.ExplanationType
+import com.privacyshield.android.Component.Screen.Overview.Utility.getDeviceExplanation
 import com.privacyshield.android.Component.Screen.Overview.viewModel.RamViewModel
+import com.privacyshield.android.Component.Settings.theme.providable.LocalAppSettings
 import com.privacyshield.android.R
+import com.privacyshield.android.Utils.theme.resolveBackgroundColor
+import com.privacyshield.android.Utils.theme.resolveSurfaceColor
+import com.privacyshield.android.Utils.theme.resolveTextColor
+import compose.icons.TablerIcons
+import compose.icons.tablericons.Activity
+import compose.icons.tablericons.Database
+import compose.icons.tablericons.DeviceDesktop
 import kotlinx.coroutines.launch
 
 @Composable
 fun RamTab(viewModel: RamViewModel = hiltViewModel()) {
+
+    val appSettings = LocalAppSettings.current
+    val currentColorScheme = MaterialTheme.colorScheme
+
     val totalRam by viewModel.totalRam.collectAsState()
     val availableRam by viewModel.availableRam.collectAsState()
     val usedRamPercent by viewModel.usedRamPercent.collectAsState()
     val isLowMemory by viewModel.isLowMemory.collectAsState()
-
     val freeRam by viewModel.freeRam.collectAsState()
     val cachedRam by viewModel.cachedRam.collectAsState()
     val swapUsed by viewModel.swapUsed.collectAsState()
@@ -66,426 +90,158 @@ fun RamTab(viewModel: RamViewModel = hiltViewModel()) {
     var question by remember { mutableStateOf("") }
     var answer by remember { mutableStateOf<String?>(null) }
     var showAssistantCard by remember { mutableStateOf(false) }
-
-
+    // Theme colors
+    val primaryColor = currentColorScheme.primary
+    val backgroundColor = resolveBackgroundColor(appSettings, primaryColor)
+    val textColor = resolveTextColor(appSettings, currentColorScheme)
+    val surfaceColor = resolveSurfaceColor(appSettings, primaryColor)
     val coroutineScope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF1E1E1E)) // Dark background
+            .background(backgroundColor)
+            .padding(vertical = 8.dp)
     ) {
-        Column {
-
-            // 🔹 Top Loading Indicator (sirf FAB click ke baad dikhega)
-            if (isLoading && !showAssistantCard) {
-                LinearProgressIndicator(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    color = Color(0xFFF57C00),
-                    trackColor = Color.DarkGray
-                )
-            }
+        Column(
+        ) {
+            // 🔹 Loading Indicator
+            LoadingIndicator(isLoading, showAssistantCard, appSettings, primaryColor)
 
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFF1E1E1E))
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-
-                // 🔹 AI CPU Assistant Card
                 if (showAssistantCard) {
                     item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(
-                                    Color(0xFFF57C00).copy(alpha = 0.12f),
-                                    shape = RoundedCornerShape(16.dp)
-                                )
-                                .padding(16.dp)
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-
-                                Text(
-                                    "AI RAM Assistant",
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = Color(0xFFF57C00)
-                                )
-
-
-
-                                if (isLoading) {
-                                    CircularProgressIndicator(
-                                        color = Color.White,
-                                        modifier = Modifier
-                                            .size(28.dp)
-                                            .padding(4.dp)
-                                    )
-                                }
-
-                                // 🔹 Show AI explanation
-                                explanation?.let {
-                                    Text(
-                                        it,
-                                        color = Color.White,
-                                        modifier = Modifier.padding(top = 8.dp)
-                                    )
-                                }
-
-                                // 🔹 Question + Ask AI
-                                if (explanation != null) {
-                                    OutlinedTextField(
-                                        value = question,
-                                        onValueChange = { question = it },
-                                        label = { Text("Ask about RAM", color = Color.White) },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedTextColor = Color.White,
-                                            unfocusedTextColor = Color.White,
-                                            focusedBorderColor = Color.White,
-                                            unfocusedBorderColor = Color(0xFFEEEEEE),
-                                            cursorColor = Color.White
+                        AIAssistantCard(
+                            explanation = explanation,
+                            question = question,
+                            answer = answer,
+                            isLoading = isLoading,
+                            textColor = textColor,
+                            primaryColor = primaryColor,
+                            appSettings = appSettings,
+                            onAsk = { q ->
+                                coroutineScope.launch {
+                                    answer = getDeviceExplanation(
+                                        explanationType = ExplanationType.RAM,
+                                        userQuestion = q,
+                                        ramInfo = RamInfo(
+                                            totalRam = totalRam,
+                                            availableRam = availableRam,
+                                            freeRam = freeRam,
+                                            cachedRam = cachedRam,
+                                            swapUsed = swapUsed,
+                                            swapTotal = swapTotal
                                         )
                                     )
+                                    isLoading = true
 
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Button(
-                                            onClick = {
-                                                coroutineScope.launch {
-                                                    if (question.isNotBlank()) {
-                                                        isLoading = true
-                                                        answer = getRamExplanation(
-                                                            totalRam,
-                                                            availableRam,
-                                                            freeRam,
-                                                            cachedRam,
-                                                            swapUsed,
-                                                            swapTotal
-                                                        )
-                                                        isLoading = false
-                                                        question = ""
-                                                    }
-                                                }
-                                            },
-                                            enabled = question.isNotBlank(),
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color.White)
-                                        ) {
-                                            Text("Ask AI", color = Color(0xFFF57C00))
-                                        }
-
-                                        OutlinedButton(
-                                            onClick = {
-                                                question = ""
-                                                explanation = null
-                                                answer = null
-                                                showAssistantCard = false
-                                            },
-                                            border = BorderStroke(1.dp, Color.White)
-                                        ) {
-                                            Text("Clear Chat", color = Color.White)
-                                        }
-                                    }
-
-                                    if (isLoading) {
-                                        CircularProgressIndicator(
-                                            color = Color.White,
-                                            modifier = Modifier
-                                                .size(24.dp)
-                                                .padding(top = 4.dp)
-                                        )
-                                    }
-
-                                    answer?.let {
-                                        Text("Answer: $it", color = Color.White)
-                                    }
+                                    isLoading = false
+                                    question = ""
                                 }
-                            }
-                        }
-                    }
-
-                }
-
-
-                item {
-                    Text(
-                        text = "RAM Monitor",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = Color(0xFFE0E0E0)
-                    )
-                }
-
-
-                item { CardInfo("Total RAM", totalRam, 1f, Color(0xFF4CAF50)) }
-
-                // ✅ Available RAM
-                item {
-                    CardInfo(
-                        "Available RAM",
-                        availableRam,
-                        progress = if (totalRam.isNotBlank() && availableRam.isNotBlank()) {
-                            availableRam.replace(" MB", "").toFloat() /
-                                    totalRam.replace(" MB", "").toFloat()
-                        } else 0f,
-                        progressColor = Color(0xFF2196F3)
-                    )
-                }
-
-                // ✅ Used RAM
-                item {
-                    CardInfo(
-                        "Used RAM",
-                        "${usedRamPercent.toInt()}%",
-                        progress = usedRamPercent / 100f,
-                        progressColor = if (usedRamPercent > 80) Color.Red else Color(0xFFFFC107)
-                    )
-                }
-
-                item {
-                    val total = totalRam.replace(" MB", "").toFloatOrNull() ?: 0f
-                    val free = freeRam.replace(" MB", "").toFloatOrNull() ?: 0f
-                    val cached = cachedRam.replace(" MB", "").toFloatOrNull() ?: 0f
-
-                    val progress = if (total > 0f) (free + cached) / total else 0f
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFF2A2A2A))
-                            .padding(12.dp) // Inner padding
-                    ) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "Free vs Cached RAM",
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    color = Color.White,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            )
-                            Text(
-                                text = "Free: $freeRam",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = 12.sp,
-                                    color = Color(0xFF4CAF50) // Green
-                                )
-                            )
-                            Text(
-                                text = "Cached: $cachedRam",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = 12.sp,
-                                    color = Color(0xFFFFC107) // Amber
-                                )
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(6.dp)
-                                    .clip(RoundedCornerShape(50))
-                                    .background(Color.White.copy(alpha = 0.15f))
-                            ) {
-                                LinearProgressIndicator(
-                                    progress = progress,
-                                    color = Color(0xFF00BCD4),
-                                    trackColor = Color.Transparent,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(6.dp)
-                                        .clip(RoundedCornerShape(50))
-                                )
-                            }
-                        }
+                            },
+                            onClear = {
+                                question = ""
+                                explanation = null
+                                answer = null
+                                showAssistantCard = false
+                            },
+                            onQuestionChange = { question = it }
+                        )
                     }
                 }
-
-
                 item {
-                    // Convert strings to Float safely
-                    val used = swapUsed.replace(" MB", "").toFloatOrNull() ?: 0f
-                    val total = swapTotal.replace(" MB", "").toFloatOrNull() ?: 0f
+                    //   SectionHeader("Ram Overview", textColor)
 
-                    val progress = if (total > 0f) used / total else 0f
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFF2A2A2A)) // Tint background
-                            .padding(12.dp) // Inner padding
-                    ) {
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "Swap Usage",
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    color = Color.White,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            )
-                            Text(
-                                text = "Used: $swapUsed",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color(0xFFBA68C8) // Lighter purple for used
-                                )
-                            )
-                            Text(
-                                text = "Total: $swapTotal",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color(0xFFE1BEE7) // Even lighter purple for total
-                                )
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(6.dp)
-                                    .clip(RoundedCornerShape(50))
-                                    .background(Color.White.copy(alpha = 0.15f))
-                            ) {
-                                LinearProgressIndicator(
-                                    progress = progress,
-                                    color = Color(0xFFBA68C8),
-                                    trackColor = Color.Transparent,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(6.dp)
-                                        .clip(RoundedCornerShape(50))
-                                )
-                            }
-                        }
+
+
+                SectionHeader("Device Memory", textColor)
+//
+
+
+                        InfoCard(
+                            title = "Total RAM",
+                            value = totalRam,
+                            cardColor = Color(0xFF4CAF50),
+                            textColor = textColor,
+                            icon = TablerIcons.DeviceDesktop
+                        )
+
+
+
+                        InfoCard(
+                            title = "Available RAM",
+                            value = availableRam,
+                            cardColor = Color(0xFF2196F3),
+                            textColor = textColor,
+                            icon = TablerIcons.Activity 
+                        )
+
+
+
+                        InfoCard(
+                            title = "Used RAM",
+                            value = "${usedRamPercent.toInt()}%",
+                            cardColor = if (usedRamPercent > 80) Color.Red else Color(0xFFFFC107),
+                            textColor = textColor,
+                            icon = TablerIcons.Database
+                        )
+
+
+
+                        FreeCachedRamCard(freeRam, cachedRam, totalRam, textColor)
+
+
+
+                        SwapUsageCard(swapUsed, swapTotal, textColor)
+
+
+
+                        LowMemoryCard(isLowMemory)
+
                     }
                 }
-
-
-//        // ✅ Per-app / process memory usage
-//        items(processMemory.entries.toList()) { (appName, usage) ->
-//            CardInfo(
-//                "$appName",
-//                usage,
-//                progress = if (totalRam.isNotBlank()) {
-//                    usage.replace(" MB", "").toFloat() /
-//                            totalRam.replace(" MB", "").toFloat()
-//                } else 0f,
-//                progressColor = Color(0xFFFF9800)
-//            )
-//        }
-
-                // ✅ Low memory warning
-                item {
-                    LowMemoryCard(isLowMemory)
-                }
-
-
             }
         }
+
+
         FloatingActionButton(
             onClick = {
                 coroutineScope.launch {
-                        isLoading = true
-                        explanation = getRamExplanation(
-                            totalRam,
-                            availableRam,
-                            freeRam,
-                            cachedRam,
-                            swapUsed,
-                            swapTotal
+                    isLoading = true
+                    explanation = getDeviceExplanation(
+                        explanationType = ExplanationType.RAM,
+                        userQuestion = null,
+                        ramInfo = RamInfo(
+                            totalRam = totalRam,
+                            availableRam = availableRam,
+                            freeRam = freeRam,
+                            cachedRam = cachedRam,
+                            swapUsed = swapUsed,
+                            swapTotal = swapTotal
                         )
-                        isLoading = false
-                        showAssistantCard = true
-
+                    )
+                    isLoading = false
+                    showAssistantCard = true
                 }
             },
-            containerColor = Color(0xFFF57C00),
+            containerColor = primaryColor,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
         ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_ai_icon),
-                contentDescription = "AI Info"
-            )
+            Icon(Icons.Default.SmartToy, contentDescription = "AI Info")
         }
 
     }
-
 }
 
-@Composable
-fun CardInfo(
-    title: String,
-    value: String,
-    progress: Float,
-    progressColor: Color
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF2A2A2A))
-
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp) // spacing between elements
-        ) {
-            // 📌 Title
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall.copy(
-                    color = Color.White,
-                    fontWeight = FontWeight.SemiBold
-                )
-            )
-
-            // 📌 Value
-            Text(
-                text = value,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontWeight = FontWeight.Medium,
-                ),
-                color = progressColor
-            )
-
-            // 📌 Progress Bar Background
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(progressColor.copy(alpha = 0.15f))
-            ) {
-                // 📌 Progress Bar Foreground
-                LinearProgressIndicator(
-                    progress = progress,
-                    color = progressColor,
-                    trackColor = Color.Transparent,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(50))
-                )
-            }
-        }
-    }
-}
 
 @Composable
 fun LowMemoryCard(isLowMemory: Boolean) {
@@ -507,54 +263,17 @@ fun LowMemoryCard(isLowMemory: Boolean) {
         ) {
             Text(
                 text = "System Low Memory",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = if (isLowMemory) Color.Red else Color(0xFFFFFFFF)
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.SemiBold),
+                color = if (isLowMemory) Color.Red else Color.Unspecified
             )
             Text(
                 text = if (isLowMemory) "Yes" else "No",
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold
             )
         }
     }
 }
 
-
-suspend fun getRamExplanation(
-    totalRam: String,
-    availableRam: String,
-    freeRam: String,
-    cachedRam: String,
-    swapUsed: String,
-    swapTotal: String,
-    userQuestion: String? = null
-): String {
-    val model = GenerativeModel(
-        modelName = "gemini-1.5-flash",
-        apiKey = "AIzaSyBnM52QDppM97TN1CMIPm3yyWD0g09vYtA" // apna API key daalna
-    )
-
-    // ✅ Build RAM info string
-    val ramInfo = buildString {
-        appendLine("Total RAM: $totalRam")
-        appendLine("Available RAM: $availableRam")
-        appendLine("Free RAM: $freeRam")
-        appendLine("Cached RAM: $cachedRam")
-        appendLine("Swap Used: $swapUsed")
-        appendLine("Swap Total: $swapTotal")
-    }
-
-    // ✅ Build prompt
-    val prompt = if (userQuestion.isNullOrBlank()) {
-        "Explain this RAM information in very simple terms:\n$ramInfo"
-    } else {
-        "Here is the RAM information:\n$ramInfo\n\nNow answer this question in simple terms:\n$userQuestion"
-    }
-
-    return try {
-        val response = model.generateContent(prompt)
-        response.text ?: "No explanation found."
-    } catch (e: Exception) {
-        "Error: ${e.localizedMessage}"
-    }
-}
 

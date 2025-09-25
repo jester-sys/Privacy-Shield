@@ -5,11 +5,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -33,7 +36,8 @@ fun TintedStatBox(
     titleColor: Color,
     valueColor: Color,
     backgroundColor: Color,
-    icon: ImageVector? = null
+    icon: ImageVector = Icons.Default.Info,
+    textColor: Color = Color.Unspecified
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val primaryColor = colorScheme.primary
@@ -54,32 +58,32 @@ fun TintedStatBox(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                icon?.let {
-                    Icon(
-                        imageVector = it,
-                        contentDescription = title,
-                        tint = valueColor,
-                    )
-                }
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = titleColor,
+                    modifier = Modifier.size(20.dp)
+                )
 
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            color = titleColor,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                        color = textColor
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = value,
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.Medium,
-                            color = titleColor
-                        )
+                        style = MaterialTheme.typography.bodySmall,
+                        color = textColor,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
+
             }
         }
     }

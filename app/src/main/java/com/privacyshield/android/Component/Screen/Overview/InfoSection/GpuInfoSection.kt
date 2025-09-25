@@ -41,6 +41,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.privacyshield.android.Component.Screen.Overview.Component.InfoCard
+import com.privacyshield.android.Component.Screen.Overview.Component.SectionHeader
 import com.privacyshield.android.Component.Settings.theme.AppSettings
 @Composable
 fun GpuInfoSection(
@@ -52,11 +53,13 @@ fun GpuInfoSection(
     textColor: Color,
     appSettings: AppSettings
 ) {
+
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            "GPU Overview",
+            "Graphics Processor",
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = textColor
+            color = textColor,
+            modifier = Modifier.padding(top = 8.dp)
         )
 
         InfoCard("Renderer", renderer, primaryColor, Icons.Default.Memory, appSettings.highContrast, appSettings.darkTheme, textColor)

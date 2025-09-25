@@ -1,38 +1,36 @@
 package com.privacyshield.android.Component.Screen.Overview.TabScreen
 
 import android.os.Build
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Apartment
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Computer
+import androidx.compose.material.icons.filled.DeveloperBoard
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.GroupWork
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Thermostat
+import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.ViewModule
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,37 +41,52 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.google.ai.client.generativeai.BuildConfig
 import com.google.ai.client.generativeai.GenerativeModel
-import com.privacyshield.android.Component.Screen.Overview.AssistantCard.AIAssistantCard
-import com.privacyshield.android.Component.Screen.Overview.AssistantCard.CpuAssistantCard
+import com.privacyshield.android.Component.Screen.Overview.Component.AIAssistantCard
 import com.privacyshield.android.Component.Screen.Overview.Component.CpuCoreCard
 import com.privacyshield.android.Component.Screen.Overview.Component.InfoCard
-import com.privacyshield.android.Component.Screen.Overview.Indicator.GpuLoadingIndicator
+import com.privacyshield.android.Component.Screen.Overview.Component.LoadingIndicator
+import com.privacyshield.android.Component.Screen.Overview.Component.SectionHeader
 import com.privacyshield.android.Component.Screen.Overview.InfoSection.getCpuCoresInfo
 import com.privacyshield.android.Component.Screen.Overview.InfoSection.getCpuOverview
 import com.privacyshield.android.Component.Screen.Overview.Model.CpuCoreInfo
+import com.privacyshield.android.Component.Screen.Overview.Model.CpuInfo
+import com.privacyshield.android.Component.Screen.Overview.Utility.ExplanationType
+import com.privacyshield.android.Component.Screen.Overview.Utility.getDeviceExplanation
 import com.privacyshield.android.Component.Settings.theme.providable.LocalAppSettings
-import com.privacyshield.android.R
 import com.privacyshield.android.Utils.theme.resolveBackgroundColor
 import com.privacyshield.android.Utils.theme.resolveTextColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.io.File
+import androidx.compose.material.icons.filled.Memory as Memory1
 
 @Composable
 fun CpuTab() {
     val appSettings = LocalAppSettings.current
     val colorScheme = MaterialTheme.colorScheme
     val coroutineScope = rememberCoroutineScope()
+
+    val cpuIcons = mapOf(
+        "CPU Model" to Icons.Default.Memory1,
+        "CPU ABI" to Icons.Default.Code,
+        "CPU Cores" to Icons.Default.ViewModule,
+        "CPU Arch" to Icons.Default.DeveloperBoard,
+        "Hardware" to Icons.Default.Build,
+        "Model Name" to Icons.Default.Badge,
+        "Processor" to Icons.Default.Computer,
+        "Vendor ID" to Icons.Default.Apartment,
+        "BogoMIPS" to Icons.Default.Timeline,
+        "Features" to Icons.Default.List,
+        "CPU Family" to Icons.Default.GroupWork,
+        "Cache Size" to Icons.Default.Storage,
+        "Governor" to Icons.Default.Tune,
+        "CPU Temperature" to Icons.Default.Thermostat
+    )
+
+
+
 
     var coresInfo by remember { mutableStateOf(emptyList<CpuCoreInfo>()) }
     var cpuOverview by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
@@ -102,7 +115,7 @@ fun CpuTab() {
             .background(backgroundColor)
     ) {
         Column {
-            GpuLoadingIndicator(isLoading, showAssistantCard, appSettings, primaryColor)
+            LoadingIndicator(isLoading, showAssistantCard, appSettings, primaryColor)
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -124,8 +137,20 @@ fun CpuTab() {
                             onAsk = { q ->
                                 coroutineScope.launch {
                                     isLoading = true
-                                    answer = getCpuExplanation(q)
+                                    answer = getDeviceExplanation(
+                                        explanationType = ExplanationType.CPU,
+                                        userQuestion = q,
+                                        cpuInfo = CpuInfo(
+                                            abi = Build.SUPPORTED_ABIS.joinToString(),
+                                            cores = Runtime.getRuntime().availableProcessors(),
+                                            hardware = Build.HARDWARE,
+                                            manufacturer = Build.MANUFACTURER,
+                                            model = Build.MODEL,
+                                            coreDetails = coresInfo.joinToString(" | ") { "Core ${it.coreId}: ${it.curPercent}%" }
+                                        )
+                                    )
                                     isLoading = false
+                                    question = ""
                                 }
                             },
                             onClear = {
@@ -142,10 +167,12 @@ fun CpuTab() {
                 // CPU Cores Section
                 item {
                     Text(
-                        "CPU Cores",
+                        "Processing Power",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = textColor
+                        color = textColor,
+                        modifier = Modifier.padding(top = 8.dp)
                     )
+
                 }
                 items(coresInfo) { core ->
                     CpuCoreCard(core, appSettings, primaryColor, textColor)
@@ -165,7 +192,7 @@ fun CpuTab() {
                             title = title,
                             value = value,
                             cardColor = primaryColor,
-                            icon = Icons.Default.Info,
+                            icon = cpuIcons[title] ?: Icons.Default.Info,
                             highContrast = appSettings.highContrast,
                             darkTheme = appSettings.darkTheme,
                             textColor = textColor
@@ -174,12 +201,22 @@ fun CpuTab() {
                 }
             }
         }
-        // FloatingActionButton
         FloatingActionButton(
             onClick = {
                 coroutineScope.launch {
                     isLoading = true
-                    explanation = getCpuExplanation("Give me a CPU overview")
+                    explanation = getDeviceExplanation(
+                        explanationType = ExplanationType.CPU,
+                        userQuestion = null,
+                        cpuInfo = CpuInfo(
+                            abi = Build.SUPPORTED_ABIS.joinToString(),
+                            cores = Runtime.getRuntime().availableProcessors(),
+                            hardware = Build.HARDWARE,
+                            manufacturer = Build.MANUFACTURER,
+                            model = Build.MODEL,
+                            coreDetails = coresInfo.joinToString(" | ") { "Core ${it.coreId}: ${it.curPercent}%" }
+                        )
+                    )
                     isLoading = false
                     showAssistantCard = true
                 }
@@ -197,55 +234,3 @@ fun CpuTab() {
 }
 
 
-suspend fun getCpuExplanation(userQuestion: String? = null): String {
-    val model = GenerativeModel(
-        modelName = "gemini-1.5-flash",
-        apiKey = com.privacyshield.android.BuildConfig.AI_KEY // ✅ Capital 'AI_KEY' use karo
-    )
-
-    // ✅ CPU basic info
-    val cpuInfo = buildString {
-        appendLine("CPU ABI: ${Build.SUPPORTED_ABIS.joinToString()}")
-        appendLine("CPU Cores: ${Runtime.getRuntime().availableProcessors()}")
-        appendLine("CPU Hardware: ${Build.HARDWARE}")
-        appendLine("CPU Manufacturer: ${Build.MANUFACTURER}")
-        appendLine("CPU Model: ${Build.MODEL}")
-
-        // ✅ Core-wise info (Linux proc file se)
-        try {
-            val process = Runtime.getRuntime().exec("cat /proc/cpuinfo")
-            val reader = process.inputStream.bufferedReader()
-            val lines = reader.readLines()
-            reader.close()
-
-            appendLine("\n--- Core Details (/proc/cpuinfo) ---")
-            lines.take(20).forEach { line -> // Limit to first 20 lines
-                if (line.contains("processor") || line.contains("Hardware") ||
-                    line.contains("model name") || line.contains("cpu MHz")) {
-                    appendLine(line.trim())
-                }
-            }
-        } catch (e: Exception) {
-            appendLine("\n(Core details not available: ${e.localizedMessage})")
-        }
-    }
-
-    // ✅ Better prompt for AI
-    val prompt = """
-        You are a technical expert explaining CPU information to a non-technical user.
-        
-        CPU Information:
-        $cpuInfo
-        
-        ${if (userQuestion.isNullOrBlank()) "Explain this CPU information in very simple, easy-to-understand terms." else "Question: $userQuestion\n\nAnswer in simple terms:"}
-        
-        Keep the response concise and user-friendly.
-    """.trimIndent()
-
-    return try {
-        val response = model.generateContent(prompt)
-        response.text ?: "I couldn't generate an explanation at the moment. Please try again."
-    } catch (e: Exception) {
-        "Error getting explanation: ${e.localizedMessage}"
-    }
-}

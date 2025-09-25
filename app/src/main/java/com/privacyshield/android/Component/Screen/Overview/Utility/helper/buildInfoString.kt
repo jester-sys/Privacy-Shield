@@ -8,9 +8,10 @@ import com.privacyshield.android.Component.Screen.Overview.Model.RamInfo
 import com.privacyshield.android.Component.Screen.Overview.Model.SensorInfo
 import com.privacyshield.android.Component.Screen.Overview.Model.StorageInfo
 import com.privacyshield.android.Component.Screen.Overview.Utility.ExplanationType
+import com.privacyshield.android.Component.Screen.Overview.Utility.formatSize
 
 
- fun buildInfoString(
+fun buildInfoString(
     type: ExplanationType,
     cpuInfo: CpuInfo? = null,
     gpuInfo: GpuInfo? = null,
@@ -66,12 +67,12 @@ import com.privacyshield.android.Component.Screen.Overview.Utility.ExplanationTy
         }
 
         ExplanationType.RAM -> buildString {
-            appendLine("Total RAM: ${ramInfo?.totalRam ?: ""}")
-            appendLine("Available RAM: ${ramInfo?.availableRam ?: ""}")
-            appendLine("Free RAM: ${ramInfo?.freeRam ?: ""}")
-            appendLine("Cached RAM: ${ramInfo?.cachedRam ?: ""}")
-            appendLine("Swap Used: ${ramInfo?.swapUsed ?: ""}")
-            appendLine("Swap Total: ${ramInfo?.swapTotal ?: ""}")
+            appendLine("Total RAM: ${formatSize(ramInfo?.totalRam)}")
+            appendLine("Available RAM: ${formatSize(ramInfo?.availableRam)}")
+            appendLine("Free RAM: ${formatSize(ramInfo?.freeRam)}")
+            appendLine("Cached RAM: ${formatSize(ramInfo?.cachedRam)}")
+            appendLine("Swap Used: ${formatSize(ramInfo?.swapUsed)}")
+            appendLine("Swap Total: ${formatSize(ramInfo?.swapTotal)}")
         }
 
         ExplanationType.HARDWARE -> buildString {
